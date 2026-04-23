@@ -90,6 +90,49 @@ h4 {
   border-color: rgba(114, 175, 255, 0.52);
 }
 
+.auth-shell {
+  position: relative;
+}
+
+.auth-shell::before {
+  content: "";
+  position: absolute;
+  inset: 4% 8%;
+  border-radius: 48px;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(62, 198, 255, 0.22), transparent 45%),
+    radial-gradient(circle at 82% 84%, rgba(91, 240, 208, 0.14), transparent 38%);
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.auth-hero {
+  border: 1px solid rgba(127, 177, 255, 0.18);
+  background:
+    linear-gradient(145deg, rgba(18, 37, 63, 0.94), rgba(11, 25, 43, 0.86)),
+    radial-gradient(circle at 4% -6%, rgba(62, 198, 255, 0.18), transparent 28%);
+}
+
+.auth-point {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-point-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: linear-gradient(120deg, #53c8ff, #67f0d6);
+  box-shadow: 0 0 16px rgba(83, 200, 255, 0.62);
+}
+
+@media (max-width: 1023px) {
+  .auth-hero {
+    display: none;
+  }
+}
+
 .react-datepicker {
   margin-left: 0;
 }

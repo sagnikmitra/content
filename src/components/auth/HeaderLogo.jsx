@@ -2,10 +2,15 @@ import Logo from "@assets/logo.svg";
 
 export default function HeaderLogo() {
   return (
-    <div className="flex items-center gap-3 font-outfit mb-4">
-      <img className="size-10 rounded-2xl" src={Logo} alt="Logo" />
-      <h1 className="text-3xl font-semibold tracking-normal">
-        Track, Organize & Grow !
+    <div className="font-outfit">
+      <div className="inline-flex items-center gap-3 rounded-2xl border border-[#7fb1ff40] bg-[#0c1a30b3] px-4 py-3">
+        <img className="size-9 rounded-xl" src={Logo} alt="ContentOS logo" />
+        <span className="text-sm font-semibold uppercase tracking-[0.18em] text-[#89c7ff]">
+          ContentOS
+        </span>
+      </div>
+      <h1 className="mt-5 text-3xl font-semibold leading-tight tracking-normal md:text-4xl">
+        ContentOS by sgnk
       </h1>
     </div>
   );

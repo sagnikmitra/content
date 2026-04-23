@@ -1,21 +1,17 @@
 import ExistingPassword from "@components/auth/ExistingPassword";
+import FooterLinks from "@components/auth/FooterLinks";
 import HeaderLogo from "@components/auth/HeaderLogo";
 import {
   persistCredentials,
   setCredentials,
 } from "@store/slices/profileSlice";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 export default function AuthPage() {
-  const defaultAdminIdentifier =
-    import.meta.env.VITE_ADMIN_EMAIL || "admin@adm.in";
-  const [step] = useState({
-    name: "existing_password",
-    identifier: defaultAdminIdentifier,
-  });
+  const defaultAdminIdentifier = import.meta.env.VITE_ADMIN_EMAIL || "";
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,17 +48,39 @@ export default function AuthPage() {
   }, [dispatch, location.pathname, location.search, navigate]);
 
   return (
-    <div className="app-shell flex items-center justify-center">
-      <div className="w-full max-w-md">
-        <HeaderLogo />
-        <div className="mt-8 glass-panel rounded-2xl p-6">
-          {step.name === "existing_password" && (
+    <div className="app-shell auth-shell flex items-center justify-center py-6 md:py-10">
+      <div className="w-full max-w-5xl rounded-[2rem] border border-[#7fb1ff2b] bg-[#0f1f35cf] p-3 shadow-[0_32px_80px_-44px_rgba(2,8,20,0.95)] backdrop-blur-md md:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <section className="auth-hero rounded-3xl p-6 md:p-9">
+            <HeaderLogo />
+            <p className="mt-5 max-w-xl text-sm leading-6 text-[#c8dbfa] md:text-base">
+              Plan, write, and ship campaign content from one workspace.
+              ContentOS keeps team timelines, drafts, and assets aligned.
+            </p>
+            <div className="mt-7 grid gap-3 text-sm text-[#dce8ff]">
+              <div className="auth-point">
+                <span className="auth-point-dot" />
+                Unified publishing calendar for all channels
+              </div>
+              <div className="auth-point">
+                <span className="auth-point-dot" />
+                Team-ready drafts with fast content handoff
+              </div>
+              <div className="auth-point">
+                <span className="auth-point-dot" />
+                Asset workflow tied directly to each post
+              </div>
+            </div>
+          </section>
+
+          <section className="glass-panel rounded-3xl p-5 md:p-7">
             <ExistingPassword
-              identifier={step.identifier || step.email}
+              defaultIdentifier={defaultAdminIdentifier}
               onBack={null}
               hideForgotPassword
             />
-          )}
+            <FooterLinks />
+          </section>
         </div>
       </div>
     </div>
