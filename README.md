@@ -61,8 +61,15 @@ Use Supabase instead of MongoDB.
 2. Open SQL Editor and run:
    - `server/supabase/schema.sql`
 3. Create a Storage bucket named `content-assets` (or set your own bucket name in env vars below).
-4. If uploading directly from browser, add Storage policies for that bucket (insert/select/update/delete as needed).
-5. In your runtime environment (local or Vercel), set:
+4. Optional Google Drive primary storage (recommended):
+   - `GOOGLE_DRIVE_FOLDER_ID`
+   - `GOOGLE_DRIVE_CLIENT_EMAIL`
+   - `GOOGLE_DRIVE_PRIVATE_KEY` (preserve line breaks; escaped `\n` supported)
+   - Or single JSON var: `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON`
+5. Storage behavior:
+   - If Google Drive env vars exist, uploads go to Drive and download links are generated from Drive IDs.
+   - If missing, system falls back to Supabase Storage bucket.
+6. In your runtime environment (local or Vercel), set:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `SUPABASE_STORAGE_BUCKET` (optional, defaults to `content-assets`)
@@ -87,6 +94,10 @@ Set these Vercel environment variables before deploying:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STORAGE_BUCKET` (optional, defaults to `content-assets`)
+- `GOOGLE_DRIVE_FOLDER_ID` (optional, enables Drive uploads when set with creds)
+- `GOOGLE_DRIVE_CLIENT_EMAIL` (optional)
+- `GOOGLE_DRIVE_PRIVATE_KEY` (optional)
+- `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON` (optional alternative to email/key)
 - `JWT_SECRET`
 - `JWT_EXPIRY` (optional)
 - `ADMIN_USERNAME` (optional, defaults to `admin`)
@@ -96,6 +107,7 @@ Set these Vercel environment variables before deploying:
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_SUPABASE_STORAGE_BUCKET` (optional, defaults to `content-assets`)
 - `VITE_ADMIN_EMAIL` (optional, defaults to `admin@adm.in`)
+- `VITE_API_BASE_URL` (optional, set when frontend and backend are on different domains)
 
 ### Local Dev (no backend URL env needed)
 

@@ -1,6 +1,7 @@
-// Always use same-origin API so frontend + backend can run as one Vercel app.
-// Local development uses Vite proxy (see vite.config.js).
-export const BASE_URL = "";
+// Default: same-origin API (Vercel monolith / Vite proxy local).
+// Override with VITE_API_BASE_URL for split frontend/backend deploys (e.g. Framer).
+const RAW_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+export const BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 
 // list of all APIS
 export const AUTH_EMAIL_STATUS_API = `${BASE_URL}/auth/email-status`;

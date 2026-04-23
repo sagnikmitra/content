@@ -1,19 +1,5 @@
-import { supabase } from "./supabase";
-
-const STORAGE_BUCKET =
-  import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || "content-assets";
-
-const sanitizeFilename = (filename = "file") =>
-  filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-const createStoragePath = (filename) => {
-  const unique =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-  return `content/${unique}-${sanitizeFilename(filename)}`;
-};
+import { ADD_IMAGE_API } from "@api/apiList";
+import { apiConnector } from "@api/apiConnector";
 
 export const normalizeExistingPictures = (pictures = []) =>
   (Array.isArray(pictures) ? pictures : [])
@@ -23,6 +9,7 @@ export const normalizeExistingPictures = (pictures = []) =>
       return {
         id: path,
         path,
+        provider: item.provider || null,
         url: item.url || "",
         filename: item.filename || item.name || path.split("/").pop() || "file",
       };
@@ -33,35 +20,15 @@ export const uploadPicturesToSupabase = async (files = []) => {
     return [];
   }
 
-  if (!supabase) {
-    throw new Error(
-      "Supabase client is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY."
-    );
-  }
-
-  const uploaded = [];
+  const formData = new FormData();
   for (const file of files) {
-    const path = createStoragePath(file.name || "asset");
-
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, file, {
-        upsert: false,
-        contentType: file.type || "application/octet-stream",
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    uploaded.push({
-      id: path,
-      path,
-      url: data?.publicUrl || "",
-      filename: file.name || path.split("/").pop() || "file",
-    });
+    formData.append("pictures", file);
   }
 
-  return uploaded;
+  const response = await apiConnector("POST", ADD_IMAGE_API, formData);
+  if (response.status !== 201) {
+    throw new Error(response.data?.error || "Failed to upload files");
+  }
+
+  return normalizeExistingPictures(response.data?.pictures || []);
 };

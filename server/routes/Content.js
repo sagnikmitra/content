@@ -1,9 +1,22 @@
 const express = require("express");
+const multer = require("multer");
 const { supabase } = require("../lib/supabaseClient");
+const {
+  deleteFilesFromGoogleDrive,
+  isGoogleDriveConfigured,
+  uploadFilesToGoogleDrive,
+} = require("../lib/googleDriveStorage");
 const { authenticateRequest } = require("../middleware/authenticateRequest");
 
 const router = express.Router();
 const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "content-assets";
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    files: 20,
+    fileSize: 25 * 1024 * 1024,
+  },
+});
 router.use(authenticateRequest);
 
 const mapContent = (row) => {
@@ -46,6 +59,7 @@ const normalizePictureItem = (item) => {
   return {
     id: path,
     path,
+    provider: item.provider || null,
     url,
     filename: filename || path.split("/").pop() || "file",
   };
@@ -110,21 +124,113 @@ const normalizeIsoTime = (timeValue) => {
 };
 
 const deletePicturesFromStorage = async (pictures) => {
-  const paths = [...new Set(
-    normalizePictures(pictures)
-      .map((picture) => picture.path || picture.id)
-      .filter(Boolean)
-  )];
-
-  if (paths.length === 0) {
+  const normalized = normalizePictures(pictures);
+  if (!normalized.length) {
     return;
   }
 
-  const { error } = await supabase.storage.from(STORAGE_BUCKET).remove(paths);
-  if (error) {
-    throw error;
+  const gdriveIds = [];
+  const supabasePaths = [];
+
+  for (const picture of normalized) {
+    const path = picture.path || picture.id;
+    const provider =
+      picture.provider ||
+      (String(path).includes("/") ? "supabase" : "gdrive");
+
+    if (provider === "gdrive") {
+      gdriveIds.push(path);
+      continue;
+    }
+
+    supabasePaths.push(path);
+  }
+
+  if (gdriveIds.length > 0 && isGoogleDriveConfigured()) {
+    await deleteFilesFromGoogleDrive(gdriveIds);
+  }
+
+  if (supabasePaths.length > 0) {
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove([...new Set(supabasePaths)]);
+    if (error) {
+      throw error;
+    }
   }
 };
+
+const sanitizeFilename = (filename = "file") =>
+  filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+const createStoragePath = (filename) => {
+  const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `content/${unique}-${sanitizeFilename(filename)}`;
+};
+
+const uploadFilesToSupabase = async (files = []) => {
+  const uploaded = [];
+
+  for (const file of files) {
+    const path = createStoragePath(file.originalname || "asset");
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, file.buffer, {
+        upsert: false,
+        contentType: file.mimetype || "application/octet-stream",
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    uploaded.push({
+      id: path,
+      path,
+      provider: "supabase",
+      url: data?.publicUrl || "",
+      filename: file.originalname || path.split("/").pop() || "file",
+      mimeType: file.mimetype || "application/octet-stream",
+    });
+  }
+
+  return uploaded;
+};
+
+router.post("/add-image", upload.array("pictures", 20), async (req, res) => {
+  try {
+    const files = req.files || [];
+    if (files.length === 0) {
+      return res.status(400).json({ error: "No files were uploaded" });
+    }
+
+    const pictures = isGoogleDriveConfigured()
+      ? await uploadFilesToGoogleDrive(files)
+      : await uploadFilesToSupabase(files);
+
+    return res.status(201).json({ pictures });
+  } catch (error) {
+    console.error("Error uploading files:", error);
+    return res.status(500).json({ error: "Failed to upload files" });
+  }
+});
+
+router.delete("/delete-image", async (req, res) => {
+  try {
+    const { picture } = req.body || {};
+    const normalized = normalizePictureItem(picture);
+    if (!normalized) {
+      return res.status(400).json({ error: "Invalid picture payload" });
+    }
+
+    await deletePicturesFromStorage([normalized]);
+    return res.status(200).json({ message: "Image deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    return res.status(500).json({ error: "Failed to delete image" });
+  }
+});
 
 router.post("/create", async (req, res) => {
   try {
