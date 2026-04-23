@@ -49,15 +49,15 @@ export default function AuthPage() {
 
   return (
     <div className="app-shell auth-shell flex items-center justify-center py-6 md:py-10">
-      <div className="w-full max-w-5xl rounded-[2rem] border border-[#7fb1ff2b] bg-[#0f1f35cf] p-3 shadow-[0_32px_80px_-44px_rgba(2,8,20,0.95)] backdrop-blur-md md:p-6">
+      <div className="w-full max-w-5xl rounded-[2rem] border border-[#3c3c3c] bg-[#1e1e1ecf] p-3 shadow-[0_32px_80px_-44px_rgba(0,0,0,0.95)] backdrop-blur-md md:p-6">
         <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
           <section className="auth-hero rounded-3xl p-6 md:p-9">
             <HeaderLogo />
-            <p className="mt-5 max-w-xl text-sm leading-6 text-[#c8dbfa] md:text-base">
+            <p className="mt-5 max-w-xl text-sm leading-6 text-[#c7c7c7] md:text-base">
               Plan, write, and ship campaign content from one workspace.
               ContentOS keeps team timelines, drafts, and assets aligned.
             </p>
-            <div className="mt-7 grid gap-3 text-sm text-[#dce8ff]">
+            <div className="mt-7 grid gap-3 text-sm text-[#d4d4d4]">
               <div className="auth-point">
                 <span className="auth-point-dot" />
                 Unified publishing calendar for all channels

@@ -4,26 +4,29 @@ import { IoCloudUploadOutline } from "react-icons/io5";
 import { MdOutlineSaveAlt } from "react-icons/md";
 import { RxCross2 } from "react-icons/rx";
 import { toast } from "react-toastify";
+import { resolvePictureDownloadUrl } from "../../utils/supabaseStorage";
 
 const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
-  const fileInputRef = useRef(null); // Create a ref for the file input
+  const fileInputRef = useRef(null);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
+    if (!files.length) {
+      return;
+    }
 
     setImages((prevImages) => {
       const existingFiles = prevImages.map((file) =>
         (file.name || file.filename).toLowerCase()
       );
 
-      // Filter out files that already exist
       const newFiles = files.filter(
         (file) => !existingFiles.includes(file.name.toLowerCase())
       );
 
       if (newFiles.length === 0) {
         toast.error("This file is already added.");
-        return prevImages; // Return the previous state unchanged
+        return prevImages;
       }
 
       return [...prevImages, ...newFiles];
@@ -34,7 +37,6 @@ const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
     setImages((prev) => {
       const updatedImages = prev.filter((_, i) => i !== index);
 
-      // Reset input field to allow re-uploading the same file
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -43,75 +45,83 @@ const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
     });
   };
 
+  const triggerDownload = (image) => {
+    const href = resolvePictureDownloadUrl(image);
+    if (!href) {
+      toast.error("Download link unavailable");
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = image.filename || image.name || "asset";
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center w-full h-full bg-[#000000ba] font-outfit">
-      <div className="relative flex flex-col md:p-4 p-2 md:w-full w-[90%] max-w-2xl  h-[600px] bg-[#1a1b1b] rounded-lg shadow-sm ">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 pt-0 pb-2 border-b border-gray-600">
-          <h3 className="text-[25px] font-semibold text-white">
+    <div className="fixed inset-0 z-50 flex h-full w-full items-center justify-center bg-[#000000c2] font-outfit">
+      <div className="relative flex h-[620px] w-[92%] max-w-2xl flex-col rounded-xl border border-[#3c3c3c] bg-[#1e1e1e] p-3 shadow-2xl md:w-full md:p-4">
+        <div className="flex items-center justify-between border-b border-[#3c3c3c] p-2 pb-3">
+          <h3 className="text-[22px] font-semibold text-[#d4d4d4]">
             {mode === "view" ? "Attached Files" : "Upload Files"}
           </h3>
 
           <button
             onClick={() => setIsOpen(false)}
-            className="text-gray-400 cursor-pointer hover:bg-gray-600 hover:text-white rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center"
+            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-sm text-[#9da1a6] transition hover:bg-[#2d2d30] hover:text-[#d4d4d4]"
+            type="button"
           >
-            ❌
+            <RxCross2 />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="px-2 pt-2 space-y-4 overflow-y-scroll h-full pb-4">
+        <div className="h-full space-y-3 overflow-y-auto px-1 pt-3 pb-2">
           <div className="flex flex-col gap-2">
-            {images?.map((image, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between px-4 py-2 bg-[#000] rounded-md"
-              >
-                <p className="text-gray-300 text-sm truncate">
-                  {image.filename || image.name}
-                </p>
-                {mode !== "view" ? (
-                  <button
-                    className="cursor-pointer text-white text-[18px]"
-                    onClick={() => handleRemoveImage(index)}
-                  >
-                    <RxCross2 />
-                  </button>
-                ) : (
-                  <button
-                    className="cursor-pointer text-white text-[18px]"
-                    onClick={() => {
-                      const href =
-                        image.url ||
-                        (image.id
-                          ? `https://drive.google.com/uc?export=download&id=${image.id}`
-                          : "");
-                      if (!href) {
-                        return;
-                      }
-                      const link = document.createElement("a");
-                      link.href = href;
-                      link.download = image.filename;
-                      link.target = "_blank";
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                  >
-                    <MdOutlineSaveAlt />
-                  </button>
-                )}
+            {!images?.length && (
+              <div className="rounded-lg border border-dashed border-[#3c3c3c] bg-[#252526] px-4 py-6 text-center text-sm text-[#9da1a6]">
+                No files yet.
               </div>
-            ))}
+            )}
+
+            {images?.map((image, index) => {
+              const fileName = image.filename || image.name || "file";
+              return (
+                <div
+                  key={`${fileName}-${index}`}
+                  className="flex items-center justify-between gap-3 rounded-md border border-[#3c3c3c] bg-[#252526] px-4 py-2"
+                >
+                  <p className="truncate text-sm text-[#d4d4d4]">{fileName}</p>
+                  {mode !== "view" ? (
+                    <button
+                      className="cursor-pointer text-[18px] text-[#9da1a6] transition hover:text-[#d4d4d4]"
+                      onClick={() => handleRemoveImage(index)}
+                      type="button"
+                    >
+                      <RxCross2 />
+                    </button>
+                  ) : (
+                    <button
+                      className="cursor-pointer text-[18px] text-[#9da1a6] transition hover:text-[#d4d4d4]"
+                      onClick={() => triggerDownload(image)}
+                      type="button"
+                    >
+                      <MdOutlineSaveAlt />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
 
             {mode !== "view" && (
               <label
                 htmlFor="file-upload"
-                className="cursor-pointer mt-2 text-gray-200 border border-dashed border-gray-500 rounded-md px-4 py-3 text-center  flex items-center gap-3 justify-center"
+                className="mt-2 flex cursor-pointer items-center justify-center gap-3 rounded-md border border-dashed border-[#4f4f4f] bg-[#252526] px-4 py-3 text-center text-[#d4d4d4] transition hover:border-[#6b6b6b] hover:bg-[#2d2d30]"
               >
-                <IoCloudUploadOutline className="text-[20px]" /> Click to Upload
-                Files
+                <IoCloudUploadOutline className="text-[20px]" />
+                Select files to upload
               </label>
             )}
 
@@ -122,7 +132,7 @@ const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
               accept="*"
               onChange={handleImageChange}
               className="hidden"
-              ref={fileInputRef} // Attach ref
+              ref={fileInputRef}
             />
           </div>
         </div>

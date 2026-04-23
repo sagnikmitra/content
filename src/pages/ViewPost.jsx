@@ -63,12 +63,12 @@ const ViewPost = () => {
       <div className="mx-auto max-w-6xl glass-panel rounded-3xl p-4 md:p-6">
         <div className="flex flex-col gap-4 md:gap-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <p className="font-outfit text-[24px] md:text-[32px] font-semibold text-[#f3f8ff] w-full lg:w-[64%] min-h-[48px]">
+            <p className="font-outfit text-[24px] md:text-[32px] font-semibold text-[#d4d4d4] w-full lg:w-[64%] min-h-[48px]">
               {task.title}
             </p>
 
             <button
-              className="text-[#d8e8ff] text-[16px] font-semibold border border-[#41618f] rounded-xl cursor-pointer py-3 px-6 w-full lg:w-auto"
+              className="w-full cursor-pointer rounded-xl border border-[#3c3c3c] px-6 py-3 text-[16px] font-semibold text-[#d4d4d4] lg:w-auto"
               onClick={() => {
                 navigate("/");
                 dispatch(resetTask());
@@ -104,7 +104,7 @@ const ViewPost = () => {
           </div>
 
           <textarea
-            className="glass-panel border border-[#2d4c77] min-h-[100px] w-full resize-none rounded-xl outline-none text-[#e7f1ff] p-4 text-[16px]"
+            className="glass-panel min-h-[100px] w-full resize-none rounded-xl border border-[#3c3c3c] p-4 text-[16px] text-[#d4d4d4] outline-none"
             value={content.description || ""}
             onChange={(e) =>
               setContent((prev) => ({
@@ -114,8 +114,8 @@ const ViewPost = () => {
             }
           />
 
-          <div className="rounded-2xl border border-[#2d4c77] overflow-hidden bg-[#0f1f35]/70">
-            <div className="w-full px-4 md:px-5 py-4 flex flex-wrap justify-between gap-4 text-white">
+          <div className="overflow-hidden rounded-2xl border border-[#3c3c3c] bg-[#252526]/80">
+            <div className="flex w-full flex-wrap justify-between gap-4 px-4 py-4 text-white md:px-5">
               <div className="flex gap-2 md:gap-3">
                 {platformButtons.map(({ key, icon: Icon, label }) => (
                   <button
@@ -125,8 +125,8 @@ const ViewPost = () => {
                     className={clsx(
                       "h-10 px-3 rounded-lg border text-sm md:text-base flex items-center gap-2 cursor-pointer",
                       activeContent === key
-                        ? "border-[#59d6ff] bg-[#1f3559]"
-                        : "border-[#35577f] bg-transparent text-[#a6c2e8]"
+                        ? "border-[#666] bg-[#37373d] text-[#f2f2f2]"
+                        : "border-[#3c3c3c] bg-transparent text-[#9da1a6]"
                     )}
                   >
                     <Icon className="text-lg" />
@@ -137,7 +137,7 @@ const ViewPost = () => {
 
               <button
                 type="button"
-                className="h-10 px-3 rounded-lg border border-[#35577f] text-[#cfe3ff] cursor-pointer"
+                className="h-10 cursor-pointer rounded-lg border border-[#3c3c3c] px-3 text-[#d4d4d4]"
                 onClick={() => {
                   navigator.clipboard.writeText(content[activeContent] || "");
                   toast.success("Copied to clipboard");
@@ -149,7 +149,7 @@ const ViewPost = () => {
 
             <div
               ref={editorRef}
-              className="min-h-[300px] md:min-h-[420px] bg-transparent w-full outline-none text-[#e7e7e7] p-4 md:p-5 text-[16px] md:text-[18px] overflow-y-auto"
+              className="min-h-[300px] w-full overflow-y-auto bg-transparent p-4 text-[16px] text-[#d4d4d4] outline-none md:min-h-[420px] md:p-5 md:text-[18px]"
               onInput={(e) => {
                 const value = e.currentTarget.innerText;
                 setContent((prev) => ({

@@ -1,97 +1,74 @@
 import clsx from "clsx";
-import React, { useState } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { format } from "date-fns";
+import React, { useMemo, useState } from "react";
 import { RxCross2 } from "react-icons/rx";
-import Select from "react-select";
 import { toast } from "react-toastify";
 import { updateContent } from "../api/queries";
+import { statusOptions } from "../constants/Constants";
+import { formatDateKey, parseDateValue } from "../utils/date";
 import {
-  formatOptions,
-  socialOptions,
-  statusOptions,
-} from "../constants/Constants";
+  normalizeExistingPictures,
+  uploadPicturesToStorage,
+} from "../utils/supabaseStorage";
+
+const contentTabs = [
+  { value: "instagram", label: "Instagram" },
+  { value: "twitter", label: "Twitter" },
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "discord", label: "Discord" },
+  { value: "assets", label: "Assets" },
+  { value: "schedule", label: "Schedule" },
+];
+
+const toTimeInput = (value) => {
+  const parsed = parseDateValue(value);
+  return format(parsed, "HH:mm");
+};
 
 const EditModal = ({ setIsOpen, content }) => {
+  const [activeView, setActiveView] = useState("instagram");
+  const [title, setTitle] = useState(content.title || "");
+  const [description, setDescription] = useState(content.description || "");
+  const [selectedDate, setSelectedDate] = useState(
+    formatDateKey(parseDateValue(content.date))
+  );
+  const [selectedTime, setSelectedTime] = useState(toTimeInput(content.time));
+  const [selectedType, setSelectedType] = useState(content.type || "static");
+  const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState(content?.pictures || []);
   const [editedContent, setEditedContent] = useState({
-    instagram: content.instagram,
-    twitter: content.twitter,
-    linkedin: content.linkedin,
-    discord: content.discord,
+    instagram: content.instagram || "",
+    twitter: content.twitter || "",
+    linkedin: content.linkedin || "",
+    discord: content.discord || "",
   });
 
-  const customStyles = {
-    control: (provided, state) => {
-      return {
-        ...provided,
-        backgroundColor: "#000",
-        borderColor: state.isFocused ? "#484d5d" : "#484d5d", // Change border color on focus
-        borderWidth: 0,
-        color: "#ffffffe0",
-        borderStyle: "solid",
-        cursor: "pointer",
-        borderRadius: "6px",
-        width: "100%",
-        boxShadow: "none",
-        "&:hover": {
-          borderColor: "#484d5d", // Correct way to add hover effect
-        },
-      };
-    },
+  const activeStatus = useMemo(
+    () =>
+      statusOptions.find((option) => option.type === selectedType) ||
+      statusOptions[0],
+    [selectedType]
+  );
 
-    option: (provided) => ({
-      ...provided,
-      color: "#ffffff",
-      cursor: "pointer",
-      backgroundColor: "#484d5d",
-      padding: "10px",
-      "&:hover": {
-        backgroundColor: "#000",
-      },
-    }),
-    singleValue: (provided) => ({
-      ...provided,
-      color: "#ffffff",
-
-      padding: "5px 10px",
-      borderRadius: "6px",
-    }),
-    menu: (provided) => ({
-      ...provided,
-      backgroundColor: "#484d5d",
-
-      zIndex: 9999,
-      borderRadius: "6px",
-      marginTop: "5px",
-    }),
-  };
-
-  const [activeView, setActiveView] = useState("instagram");
-  const [title, setTitle] = useState(content.title);
-  const [description, setDescription] = useState(content.description);
-  const [deadline, setDeadline] = useState(new Date(content.deadline));
-  const [status, setStatus] = useState(content.status);
-  const [loading, setLoading] = useState(false);
-  const [type, setType] = useState("Static");
-  const [images, setImages] = useState(content?.pictures || []);
-
-  // Handle text input changes
   const handleChange = (platform, value) => {
     setEditedContent((prev) => ({ ...prev, [platform]: value }));
   };
 
-  // Handle image uploads
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
+    if (!files.length) {
+      return;
+    }
+
     const existingFiles = images.map((file) =>
-      (file.name || file.filename).toLowerCase()
+      (file.name || file.filename || "").toLowerCase()
     );
 
     const newFiles = files.filter(
       (file) => !existingFiles.includes(file.name.toLowerCase())
     );
 
-    if (newFiles.length === 0) {
+    if (!newFiles.length) {
       toast.error("This file is already added.");
       return;
     }
@@ -99,213 +76,201 @@ const EditModal = ({ setIsOpen, content }) => {
     setImages((prev) => [...prev, ...newFiles]);
   };
 
-  // Handle image removal
   const handleRemoveImage = (index) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Handle content save/update
   const handleSave = async () => {
     setLoading(true);
+
     try {
-      const formData = new FormData();
-      formData.append("instagram", editedContent.instagram);
-      formData.append("twitter", editedContent.twitter);
-      formData.append("linkedin", editedContent.linkedin);
-      formData.append("discord", editedContent.discord);
-      formData.append("deadline", deadline.toISOString());
-      formData.append("status", status);
-      formData.append("type", type);
-      formData.append("description", description);
-      formData.append("title", title);
+      if (!title.trim() || !description.trim()) {
+        throw new Error("Title and description are required");
+      }
 
-      // Extract existing images (ones with an ID)
-      const existingPictures = images
-        .filter((img) => img.id) // Already in DB
-        .map(({ id, url, filename }) => ({ id, url, filename }));
+      if (!selectedDate || !selectedTime) {
+        throw new Error("Date and time are required");
+      }
 
-      // Send existing images as JSON string
-      formData.append("existingPictures", JSON.stringify(existingPictures));
+      const timeValue = new Date(`${selectedDate}T${selectedTime}:00`);
+      if (Number.isNaN(timeValue.getTime())) {
+        throw new Error("Invalid date/time");
+      }
 
-      // Upload only new images (File objects)
-      images
-        .filter((img) => !img.id) // New images
-        .forEach((file) => formData.append("pictures", file));
+      const existingPictures = normalizeExistingPictures(images);
+      const newFiles = images.filter(
+        (image) => !image?.id && !image?.path && image instanceof File
+      );
+      const uploadedPictures = await uploadPicturesToStorage(newFiles);
+      const pictures = [...existingPictures, ...uploadedPictures];
 
-      await updateContent(formData, content._id);
+      const payload = {
+        title: title.trim(),
+        description: description.trim(),
+        instagram: editedContent.instagram,
+        twitter: editedContent.twitter,
+        linkedin: editedContent.linkedin,
+        discord: editedContent.discord,
+        date: selectedDate,
+        time: timeValue.toISOString(),
+        type: selectedType,
+        pictures,
+      };
+
+      await updateContent(payload, content._id);
       toast.success("Content updated successfully!");
       setIsOpen(false);
-    } catch {
-      toast.error("Failed to update content.");
+    } catch (error) {
+      toast.error(error?.message || "Failed to update content.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      {/* Modal Header */}
+    <div className="space-y-4 overflow-y-auto pt-2 md:px-2">
+      <input
+        type="text"
+        className="w-full rounded-md border border-[#3c3c3c] bg-[#252526] p-2 text-[#d4d4d4] placeholder:text-[#9da1a6]"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Enter title..."
+      />
 
-      {/* Modal Body */}
-      <div className="md:px-2 pt-2 space-y-4 overflow-y-auto h-full">
-        {/* Title Input */}
-        <input
-          type="text"
-          className="w-full p-2 rounded-md bg-[#000] text-white placeholder:font-extralight placeholder:text-[14px]"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter title..."
+      <input
+        type="text"
+        className="w-full rounded-md border border-[#3c3c3c] bg-[#252526] p-2 text-[#d4d4d4] placeholder:text-[#9da1a6]"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Short description"
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        {contentTabs.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            className={clsx(
+              "rounded-md border px-3 py-2 text-sm transition",
+              activeView === tab.value
+                ? "border-[#666] bg-[#37373d] text-[#d4d4d4]"
+                : "border-[#3c3c3c] bg-[#252526] text-[#9da1a6]"
+            )}
+            onClick={() => setActiveView(tab.value)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {["instagram", "twitter", "linkedin", "discord"].includes(activeView) && (
+        <textarea
+          className="h-[320px] w-full resize-none rounded-md border border-[#3c3c3c] bg-[#252526] p-4 text-base leading-relaxed text-[#d4d4d4]"
+          value={editedContent[activeView]}
+          onChange={(e) => handleChange(activeView, e.target.value)}
+          placeholder={`Enter ${activeView} content...`}
         />
+      )}
 
-        <input
-          type="text"
-          className="w-full p-2 rounded-md bg-[#000] text-white placeholder:font-extralight placeholder:text-[14px]"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Short & concise description of the post"
-        />
-
-        <div className="hidden md:flex items-center justify-between gap-[10px] ">
-          {socialOptions.map((tab) => (
+      {activeView === "assets" && (
+        <div className="flex flex-col gap-2">
+          {images?.map((image, index) => (
             <div
-              key={tab.value}
-              className={clsx(
-                "border-[#fff] border px-4 py-2 rounded-md w-full text-center transition-all duration-300 cursor-pointer",
-                activeView === tab.value ? "bg-white text-black" : "text-white"
-              )}
-              onClick={() => setActiveView(tab.value)}
+              key={`${image.filename || image.name || "file"}-${index}`}
+              className="flex items-center justify-between rounded-md border border-[#3c3c3c] bg-[#252526] px-4 py-2"
             >
-              {tab.label}
+              <p className="truncate text-sm text-[#d4d4d4]">
+                {image.filename || image.name}
+              </p>
+              <button
+                className="cursor-pointer text-[18px] text-[#9da1a6] transition hover:text-[#d4d4d4]"
+                onClick={() => handleRemoveImage(index)}
+                type="button"
+              >
+                <RxCross2 />
+              </button>
             </div>
           ))}
-        </div>
 
-        <div className="block md:hidden mt-0">
-          <Select
-            options={socialOptions}
-            value={socialOptions.find((option) => option.value === activeView)}
-            onChange={(selectedOption) => setActiveView(selectedOption.value)}
-            styles={customStyles}
-            isSearchable={false}
-          />
-        </div>
-
-        {activeView === "instagram" ? (
-          <textarea
-            className="w-full text-base leading-relaxed text-gray-400 bg-[#000] rounded-md p-4 resize-none h-[320px] overflow-y-auto"
-            value={editedContent["instagram"]}
-            onChange={(e) => handleChange("instagram", e.target.value)}
-            placeholder={`Enter ${"instagram"} content...`}
-          />
-        ) : activeView === "twitter" ? (
-          <textarea
-            className="w-full text-base leading-relaxed text-gray-400 bg-[#000] rounded-md p-4 resize-none h-[320px] overflow-y-auto"
-            value={editedContent["twitter"]}
-            onChange={(e) => handleChange("twitter", e.target.value)}
-            placeholder={`Enter ${"twitter"} content...`}
-          />
-        ) : activeView === "linkedin" ? (
-          <textarea
-            className="w-full text-base leading-relaxed text-gray-400 bg-[#000] rounded-md p-4 resize-none h-[320px] overflow-y-auto"
-            value={editedContent["linkedin"]}
-            onChange={(e) => handleChange("linkedin", e.target.value)}
-            placeholder={`Enter ${"linkedin"} content...`}
-          />
-        ) : activeView === "discord" ? (
-          <textarea
-            className="w-full text-base leading-relaxed text-gray-400 bg-[#000] rounded-md p-4 resize-none h-[320px] overflow-y-auto"
-            value={editedContent["discord"]}
-            onChange={(e) => handleChange("discord", e.target.value)}
-            placeholder={`Enter ${"discord"} content...`}
-          />
-        ) : activeView === "assets" ? (
-          <div className="flex flex-col gap-2">
-            {images?.map((image, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between px-4 py-2 bg-[#000] rounded-md"
-              >
-                <p className="text-gray-300 text-sm truncate">
-                  {image.filename || image.name}
-                </p>
-                <button
-                  className="cursor-pointer text-white text-[18px]"
-                  onClick={() => handleRemoveImage(index)}
-                >
-                  <RxCross2 />
-                </button>
-              </div>
-            ))}
-
-            <label
-              htmlFor="file-upload"
-              className="cursor-pointer mt-2 text-gray-400 border border-dashed border-gray-500 rounded-md px-4 py-2 text-center block"
-            >
-              Click to Upload Images
-            </label>
-            <input
-              id="file-upload"
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-          </div>
-        ) : (
-          <div>
-            <div className="flex items-center justify-between gap-[1rem]">
-              <div className="w-1/2">
-                <DatePicker
-                  selected={deadline}
-                  onChange={(date) => setDeadline(date)}
-                  showTimeSelect
-                  dateFormat="Pp"
-                  className="bg-[#000] text-white p-2 rounded-md w-full"
-                />
-              </div>
-              <div className="w-1/2">
-                <Select
-                  options={statusOptions}
-                  value={statusOptions.find(
-                    (option) => option.value === status
-                  )}
-                  onChange={(selectedOption) => setStatus(selectedOption.value)}
-                  styles={customStyles}
-                  isSearchable={false}
-                />
-              </div>
-            </div>
-
-            <div className="w-[49%] mt-[1rem]">
-              <Select
-                options={formatOptions}
-                value={formatOptions.find((option) => option.value === type)}
-                onChange={(selectedOption) => setType(selectedOption.value)}
-                styles={customStyles}
-                isSearchable={false}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-center mt-6 absolute bottom-[14px] md:px-6 px-4 w-full -translate-x-2/4  left-2/4">
-          <button
-            className={`text-[16px] w-full font-normal px-4 py-2 text-white rounded-md focus:outline-none ${
-              loading
-                ? "bg-gray-500 cursor-not-allowed"
-                : "bg-[#5540fb] hover:bg-[#5540fb] cursor-pointer"
-            }`}
-            onClick={() => {
-              handleSave();
-            }}
-            disabled={loading}
+          <label
+            htmlFor="edit-file-upload"
+            className="mt-2 cursor-pointer rounded-md border border-dashed border-[#4f4f4f] bg-[#252526] px-4 py-3 text-center text-[#d4d4d4] transition hover:bg-[#2d2d30]"
           >
-            {loading ? "Saving..." : "Publish Post"}
-          </button>
+            Select files to upload
+          </label>
+          <input
+            id="edit-file-upload"
+            type="file"
+            multiple
+            accept="*"
+            onChange={handleImageChange}
+            className="hidden"
+          />
         </div>
+      )}
+
+      {activeView === "schedule" && (
+        <div className="grid gap-3 rounded-md border border-[#3c3c3c] bg-[#252526] p-4">
+          <label className="grid gap-1">
+            <span className="text-xs text-[#9da1a6]">Date</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-2 text-[#d4d4d4]"
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-xs text-[#9da1a6]">Time</span>
+            <input
+              type="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-2 text-[#d4d4d4]"
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-xs text-[#9da1a6]">Type</span>
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-2 text-[#d4d4d4]"
+            >
+              {statusOptions.map((status) => (
+                <option key={status.type} value={status.type}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="text-xs text-[#9da1a6]">
+            Active status: {activeStatus.label}
+          </div>
+        </div>
+      )}
+
+      <div className="sticky bottom-0 mt-3 flex items-center justify-end gap-3 bg-[#1e1e1e] py-2">
+        <button
+          type="button"
+          className="rounded-md border border-[#3c3c3c] bg-[#252526] px-4 py-2 text-[#d4d4d4]"
+          onClick={() => setIsOpen(false)}
+          disabled={loading}
+        >
+          Cancel
+        </button>
+        <button
+          className="rounded-md border border-[#666] bg-[#3a3d41] px-4 py-2 text-[#f0f0f0] disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={handleSave}
+          disabled={loading}
+          type="button"
+        >
+          {loading ? "Saving..." : "Save Changes"}
+        </button>
       </div>
-    </>
+    </div>
   );
 };
 

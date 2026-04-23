@@ -8,17 +8,17 @@ const ViewModal = ({ setIsOpen, content }) => {
   const [activeView, setActiveView] = useState("view");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center w-full h-full bg-[#000000ba] font-outfit">
+    <div className="fixed inset-0 z-50 flex h-full w-full items-center justify-center bg-[#000000c2] font-outfit">
       <div
         className={clsx(
-          "relative p-4 md:w-full w-[93%] max-w-2xl  bg-[#171717] rounded-lg shadow-sm  overflow-hidden",
+          "relative w-[93%] max-w-2xl overflow-hidden rounded-lg border border-[#3c3c3c] bg-[#1e1e1e] p-4 shadow-2xl md:w-full",
           activeView === "view"
             ? "md:h-[510px] h-[460px]"
             : "md:h-[650px] h-[620px]"
         )}
       >
-        <div className="flex items-center justify-between md:p-4 p-0 pt-0 border-b border-gray-600">
-          <h3 className="text-[25px] font-semibold text-white flex items-center gap-[1rem] overflow-x-auto whitespace-nowrap max-w-[80%] scrollbar-hide">
+        <div className="flex items-center justify-between border-b border-[#3c3c3c] p-0 pt-0 md:p-4">
+          <h3 className="scrollbar-hide flex max-w-[80%] items-center gap-[1rem] overflow-x-auto whitespace-nowrap text-[25px] font-semibold text-[#d4d4d4]">
             {activeView === "view" ? content?.title : "Edit Content"}{" "}
           </h3>
           <div className="flex items-center gap-[5px]">
@@ -26,7 +26,8 @@ const ViewModal = ({ setIsOpen, content }) => {
               onClick={() => {
                 setActiveView(activeView === "view" ? "edit" : "view");
               }}
-              className="text-gray-400 cursor-pointer bg-transparent hover:bg-gray-600 hover:text-white rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-transparent text-sm text-[#9da1a6] transition hover:bg-[#2d2d30] hover:text-[#d4d4d4]"
+              type="button"
             >
               {activeView === "view" ? (
                 <FaRegEdit className="text-[16px]" />
@@ -36,7 +37,8 @@ const ViewModal = ({ setIsOpen, content }) => {
             </button>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-gray-400 cursor-pointer bg-transparent hover:bg-gray-600 hover:text-white rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-transparent text-sm text-[#9da1a6] transition hover:bg-[#2d2d30] hover:text-[#d4d4d4]"
+              type="button"
             >
               <svg
                 className="w-3 h-3"

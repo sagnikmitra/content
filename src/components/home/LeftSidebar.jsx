@@ -73,9 +73,9 @@ const LeftSidebar = () => {
   return (
     <div className="hidden lg:flex w-[280px] flex-col gap-4 min-h-[calc(100vh-2rem)]">
       <div className="glass-panel rounded-2xl px-4 py-4">
-        <p className="text-xs uppercase tracking-[0.18em] text-[#8eb2df]">Workspace</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-[#9da1a6]">Workspace</p>
         <h2 className="mt-1 text-2xl font-semibold">ContentOS</h2>
-        <p className="mt-1 text-xs text-[#aac2e8]">Marketing planning cockpit</p>
+        <p className="mt-1 text-xs text-[#9da1a6]">Marketing planning cockpit</p>
       </div>
 
       <div className="flex flex-col gap-4 flex-1">
@@ -103,7 +103,7 @@ const LeftSidebar = () => {
               className="h-9 w-9 min-h-9 min-w-9 rounded-full object-cover"
             />
           ) : (
-            <div className="flex h-8 w-8 min-h-8 min-w-8 items-center justify-center rounded-full bg-[#274571] text-base font-semibold uppercase text-neutral-100">
+            <div className="flex h-8 w-8 min-h-8 min-w-8 items-center justify-center rounded-full bg-[#3a3a3f] text-base font-semibold uppercase text-neutral-100">
               {initial}
             </div>
           )}
@@ -117,7 +117,7 @@ const LeftSidebar = () => {
             type="button"
             onClick={handleLogout}
             disabled={loggingOut}
-            className="flex items-center gap-2 rounded-lg aspect-square cursor-pointer bg-[#1f3559] px-3 py-2 text-sm font-medium text-neutral-200 transition hover:bg-[#2a4774] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex aspect-square items-center gap-2 rounded-lg bg-[#2d2d30] px-3 py-2 text-sm font-medium text-neutral-200 transition hover:bg-[#3a3a3f] disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Logout"
           >
             <FiLogOut />

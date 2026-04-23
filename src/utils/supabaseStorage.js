@@ -15,7 +15,29 @@ export const normalizeExistingPictures = (pictures = []) =>
       };
     });
 
-export const uploadPicturesToSupabase = async (files = []) => {
+export const resolvePictureDownloadUrl = (picture) => {
+  if (!picture || typeof picture !== "object") {
+    return "";
+  }
+
+  if (picture.url) {
+    return picture.url;
+  }
+
+  const id = picture.path || picture.id;
+  if (!id) {
+    return "";
+  }
+
+  const provider = picture.provider || (String(id).includes("/") ? "supabase" : "gdrive");
+  if (provider === "gdrive") {
+    return `https://drive.google.com/uc?export=download&id=${id}`;
+  }
+
+  return "";
+};
+
+export const uploadPicturesToStorage = async (files = []) => {
   if (!files.length) {
     return [];
   }
@@ -32,3 +54,5 @@ export const uploadPicturesToSupabase = async (files = []) => {
 
   return normalizeExistingPictures(response.data?.pictures || []);
 };
+
+export const uploadPicturesToSupabase = uploadPicturesToStorage;

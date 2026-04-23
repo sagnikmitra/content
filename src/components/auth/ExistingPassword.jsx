@@ -89,18 +89,18 @@ export default function ExistingPassword({
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-[#8eb2df]">
+          <p className="text-xs uppercase tracking-[0.18em] text-[#9da1a6]">
             ContentOS by sgnk
           </p>
           <h2 className="mt-1 text-2xl font-semibold">Welcome back</h2>
-          <p className="mt-1 text-sm text-[#a8c3ea]">
+          <p className="mt-1 text-sm text-[#a5a7ab]">
             Sign in to manage your publishing workspace.
           </p>
         </div>
         {typeof onBack === "function" && (
           <button
             onClick={onBack}
-            className="rounded-lg border border-[#7fb1ff33] px-3 py-1.5 text-sm text-[#cfe0ff] transition hover:border-[#7fb1ff66]"
+            className="rounded-lg border border-[#3c3c3c] px-3 py-1.5 text-sm text-[#d4d4d4] transition hover:border-[#5b5b5b]"
             type="button"
           >
             Back
@@ -110,31 +110,31 @@ export default function ExistingPassword({
 
       <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
         <label className="grid gap-1">
-          <span className="text-xs text-[#9eb9e1]">Email / Username</span>
+          <span className="text-xs text-[#9da1a6]">Email / Username</span>
           <input
             value={currentIdentifier}
             onChange={(e) => setLoginIdentifier(e.target.value)}
             disabled={Boolean(fixedIdentifier)}
-            className="h-11 rounded-xl border border-[#466694] bg-[#08172c] px-3 text-[#e7f0ff] outline-none ring-0 transition placeholder:text-[#7391bb] focus:border-[#5aa2eb] disabled:cursor-not-allowed disabled:border-[#324e75] disabled:text-[#8ea9ce]"
+            className="h-11 rounded-xl border border-[#3c3c3c] bg-[#252526] px-3 text-[#d4d4d4] outline-none ring-0 transition placeholder:text-[#8e8e90] focus:border-[#5b5b5b] disabled:cursor-not-allowed disabled:border-[#2f2f2f] disabled:text-[#8e8e90]"
             placeholder="you@example.com or username"
             autoComplete="username"
           />
         </label>
         <label className="grid gap-1">
-          <span className="text-xs text-[#9eb9e1]">Password</span>
+          <span className="text-xs text-[#9da1a6]">Password</span>
           <div className="relative">
             <input
               type={showPwd ? "text" : "password"}
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
-              className="h-11 w-full rounded-xl border border-[#466694] bg-[#08172c] px-3 pr-10 text-[#e7f0ff] outline-none ring-0 transition placeholder:text-[#7391bb] focus:border-[#5aa2eb]"
+              className="h-11 w-full rounded-xl border border-[#3c3c3c] bg-[#252526] px-3 pr-10 text-[#d4d4d4] outline-none ring-0 transition placeholder:text-[#8e8e90] focus:border-[#5b5b5b]"
               placeholder="Enter your password"
               autoComplete="current-password"
             />
             <button
               type="button"
               onClick={() => setShowPwd((prev) => !prev)}
-              className="absolute inset-y-0 right-3 flex items-center text-[15px] text-[#9eb9e1] transition hover:text-[#d6e7ff]"
+              className="absolute inset-y-0 right-3 flex items-center text-[15px] text-[#9da1a6] transition hover:text-[#d4d4d4]"
               aria-label={showPwd ? "Hide password" : "Show password"}
             >
               {showPwd ? <FiEyeOff /> : <FiEye />}
@@ -147,7 +147,7 @@ export default function ExistingPassword({
         <button
           type="submit"
           disabled={loading || !currentIdentifier || !pwd.trim()}
-          className="mt-1 h-11 rounded-xl border border-[#7fe0ff73] bg-[linear-gradient(130deg,#53c8ff,#67f0d6)] text-[#06263b] font-semibold transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55"
+          className="mt-1 h-11 rounded-xl border border-[#666] bg-[#3a3d41] text-[#f4f4f4] font-semibold transition hover:bg-[#45484d] disabled:cursor-not-allowed disabled:opacity-55"
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>

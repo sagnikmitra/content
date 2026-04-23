@@ -12,9 +12,9 @@ const Home = () => {
 
   return (
     <div className="app-shell overflow-hidden">
-      <div className="mb-3 flex items-center justify-between rounded-2xl border border-[#2e4f7e] bg-[#11213a]/85 px-4 py-3 md:hidden">
+      <div className="mb-3 flex items-center justify-between rounded-2xl border border-[#3c3c3c] bg-[#252526] px-4 py-3 md:hidden">
         <div>
-          <p className="text-sm text-[#9ec3ef]">ContentOS</p>
+          <p className="text-sm text-[#9da1a6]">ContentOS</p>
           <h1 className="text-lg font-semibold">Publishing Calendar</h1>
         </div>
         <button

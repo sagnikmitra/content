@@ -18,7 +18,7 @@ import { resetTask } from "../store/slices/taskSlice";
 import { formatDateKey, parseDateValue } from "../utils/date";
 import {
   normalizeExistingPictures,
-  uploadPicturesToSupabase,
+  uploadPicturesToStorage,
 } from "../utils/supabaseStorage";
 
 const CreatePost = ({ mode }) => {
@@ -90,7 +90,7 @@ const CreatePost = ({ mode }) => {
       const newFiles = (Array.isArray(images) ? images : []).filter(
         (image) => !image?.id && !image?.path && image instanceof File
       );
-      const uploadedPictures = await uploadPicturesToSupabase(newFiles);
+      const uploadedPictures = await uploadPicturesToStorage(newFiles);
       const pictures = [...existingPictures, ...uploadedPictures];
 
       const payload = {
@@ -138,7 +138,7 @@ const CreatePost = ({ mode }) => {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <input
               type="text"
-              className="font-outfit text-[22px] md:text-[30px] font-semibold border-b text-[#f0f6ff] border-[#2d4c77] bg-transparent ring-0 focus:ring-0 outline-none placeholder:text-[#9eb9df] w-full lg:w-[64%] h-[54px]"
+              className="h-[54px] w-full border-b border-[#3c3c3c] bg-transparent font-outfit text-[22px] font-semibold text-[#d4d4d4] outline-none placeholder:text-[#8e8e90] ring-0 focus:ring-0 md:text-[30px] lg:w-[64%]"
               placeholder="Add a title"
               autoFocus
               onChange={(e) =>
@@ -160,7 +160,7 @@ const CreatePost = ({ mode }) => {
               </button>
 
               <button
-                className="text-[#d8e8ff] text-[16px] font-semibold border border-[#41618f] rounded-xl cursor-pointer justify-center py-3 px-6"
+                className="justify-center rounded-xl border border-[#3c3c3c] px-6 py-3 text-[16px] font-semibold text-[#d4d4d4] cursor-pointer"
                 onClick={() => {
                   navigate("/");
                   dispatch(resetTask());
@@ -190,7 +190,7 @@ const CreatePost = ({ mode }) => {
           </div>
 
           <textarea
-            className="glass-panel border border-[#2d4c77] min-h-[100px] w-full resize-none rounded-xl outline-none text-[#e7f1ff] p-4 text-[16px]"
+            className="glass-panel min-h-[100px] w-full resize-none rounded-xl border border-[#3c3c3c] p-4 text-[16px] text-[#d4d4d4] outline-none"
             placeholder="Write a brief description for this post"
             onChange={(e) =>
               setContent((prev) => ({
@@ -201,8 +201,8 @@ const CreatePost = ({ mode }) => {
             value={content.description || ""}
           />
 
-          <div className="rounded-2xl border border-[#2d4c77] overflow-hidden bg-[#0f1f35]/70">
-            <div className="w-full px-4 md:px-5 py-4 flex flex-wrap justify-between gap-4 text-white">
+          <div className="overflow-hidden rounded-2xl border border-[#3c3c3c] bg-[#252526]/80">
+            <div className="flex w-full flex-wrap justify-between gap-4 px-4 py-4 text-white md:px-5">
               <div className="flex gap-2 md:gap-3">
                 {platformButtons.map(({ key, icon: Icon, label }) => (
                   <button
@@ -212,8 +212,8 @@ const CreatePost = ({ mode }) => {
                     className={clsx(
                       "h-10 px-3 rounded-lg border text-sm md:text-base flex items-center gap-2 cursor-pointer",
                       activeContent === key
-                        ? "border-[#59d6ff] bg-[#1f3559]"
-                        : "border-[#35577f] bg-transparent text-[#a6c2e8]"
+                        ? "border-[#666] bg-[#37373d] text-[#f2f2f2]"
+                        : "border-[#3c3c3c] bg-transparent text-[#9da1a6]"
                     )}
                   >
                     <Icon className="text-lg" />
@@ -224,7 +224,7 @@ const CreatePost = ({ mode }) => {
             </div>
 
             <textarea
-              className="min-h-[300px] md:min-h-[420px] bg-transparent w-full outline-none text-[#e7e7e7] p-4 md:p-5 text-[16px] md:text-[18px] resize-none"
+              className="min-h-[300px] w-full resize-none bg-transparent p-4 text-[16px] text-[#d4d4d4] outline-none md:min-h-[420px] md:p-5 md:text-[18px]"
               placeholder="Write your post here..."
               value={content[activeContent] || ""}
               onChange={(e) =>

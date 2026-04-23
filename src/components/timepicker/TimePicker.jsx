@@ -79,8 +79,8 @@ const TimePicker = ({ open, onClose, onSelect, selected }) => {
               onSelect(time);
               onClose();
             }}
-            className={`text-[#dfdede] text-sm px-3 py-2 hover:bg-[#004a77] hover:text-white rounded cursor-pointer ${
-              isSelected ? "bg-[#004a77] text-white font-medium" : ""
+            className={`text-[#dfdede] text-sm px-3 py-2 hover:bg-[#3a3a3f] hover:text-white rounded cursor-pointer ${
+              isSelected ? "bg-[#3a3a3f] text-white font-medium" : ""
             }`}
           >
             {format(time, "h:mm a")}

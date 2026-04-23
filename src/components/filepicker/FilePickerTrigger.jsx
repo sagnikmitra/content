@@ -12,7 +12,8 @@ const FilePickerTrigger = ({
   return (
     <>
       <button
-        className="flex items-center gap-3 px-4 py-2 cursor-pointer rounded-md border border-[#1a1b1b] bg-[#0e0e0e] font-outfit text-[#e7e7e7] font-normal tracking-[1.2px] text-[18px] w-auto"
+        className="flex w-auto cursor-pointer items-center gap-3 rounded-md border border-[#3c3c3c] bg-[#252526] px-4 py-2 font-outfit text-[16px] font-medium tracking-[0.2px] text-[#d4d4d4] transition hover:bg-[#2d2d30]"
+        type="button"
         onClick={() => {
           setOpenAssetsModal(true);
         }}

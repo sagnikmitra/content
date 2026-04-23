@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { MdContentCopy, MdOutlineSaveAlt } from "react-icons/md";
 import Select from "react-select";
 import { toast } from "react-toastify";
+import { resolvePictureDownloadUrl } from "../utils/supabaseStorage";
 
 const ViewModalBody = ({ content }) => {
   const [activeView, setActiveView] = useState("instagram");
@@ -36,42 +37,40 @@ const ViewModalBody = ({ content }) => {
     control: (provided, state) => {
       return {
         ...provided,
-        backgroundColor: "#000",
-        borderColor: state.isFocused ? "#484d5d" : "#484d5d", // Change border color on focus
-        borderWidth: 0,
-        color: "#ffffffe0",
+        backgroundColor: "#252526",
+        borderColor: state.isFocused ? "#4f4f4f" : "#3c3c3c",
+        borderWidth: 1,
+        color: "#d4d4d4",
         borderStyle: "solid",
         cursor: "pointer",
         borderRadius: "6px",
         width: "100%",
         boxShadow: "none",
         "&:hover": {
-          borderColor: "#484d5d", // Correct way to add hover effect
+          borderColor: "#4f4f4f",
         },
       };
     },
 
     option: (provided) => ({
       ...provided,
-      color: "#ffffff",
+      color: "#d4d4d4",
       cursor: "pointer",
-      backgroundColor: "#484d5d",
+      backgroundColor: "#2d2d30",
       padding: "10px",
       "&:hover": {
-        backgroundColor: "#000",
+        backgroundColor: "#333338",
       },
     }),
     singleValue: (provided) => ({
       ...provided,
-      color: "#ffffff",
-
+      color: "#d4d4d4",
       padding: "5px 10px",
       borderRadius: "6px",
     }),
     menu: (provided) => ({
       ...provided,
-      backgroundColor: "#484d5d",
-
+      backgroundColor: "#252526",
       zIndex: 9999,
       borderRadius: "6px",
       marginTop: "5px",
@@ -101,11 +100,11 @@ const ViewModalBody = ({ content }) => {
           <div
             key={tab.id}
             className={clsx(
-              "border-[#fff] border px-4 py-2 rounded-md w-[100px] text-center transition-all duration-300",
+              "w-[100px] rounded-md border border-[#3c3c3c] bg-[#252526] px-4 py-2 text-center text-[#d4d4d4] transition-all duration-300",
               tab.condition
                 ? "cursor-pointer"
                 : "opacity-50 cursor-not-allowed",
-              activeView === tab.id ? "bg-white text-black" : "text-white"
+              activeView === tab.id ? "border-[#666] bg-[#37373d]" : ""
             )}
             onClick={() => {
               if (!tab.condition) {
@@ -130,7 +129,7 @@ const ViewModalBody = ({ content }) => {
       </div>
 
       {activeView in platforms ? (
-        <p className="text-base leading-relaxed text-gray-400 whitespace-pre-line bg-[#000] rounded-md p-4 relative h-[320px] overflow-y-auto">
+        <p className="relative h-[320px] overflow-y-auto whitespace-pre-line rounded-md border border-[#3c3c3c] bg-[#252526] p-4 text-base leading-relaxed text-[#c5c5c5]">
           {platforms[activeView]}
 
           <MdContentCopy
@@ -143,18 +142,15 @@ const ViewModalBody = ({ content }) => {
           {content?.pictures?.map((image, index) => (
             <div
               key={index}
-              className="flex items-center justify-between px-4 py-2 bg-[#000] rounded-md"
+              className="flex items-center justify-between px-4 py-2 bg-[#252526] border border-[#3c3c3c] rounded-md"
             >
-              <p className="text-gray-300 text-sm truncate">{image.filename}</p>
+              <p className="text-[#d4d4d4] text-sm truncate">{image.filename}</p>
               <button
-                className="cursor-pointer text-white text-[18px]"
+                className="cursor-pointer text-[#d4d4d4] text-[18px]"
                 onClick={() => {
-                  const href =
-                    image.url ||
-                    (image.id
-                      ? `https://drive.google.com/uc?export=download&id=${image.id}`
-                      : "");
+                  const href = resolvePictureDownloadUrl(image);
                   if (!href) {
+                    toast.error("Download link unavailable");
                     return;
                   }
                   const link = document.createElement("a");
