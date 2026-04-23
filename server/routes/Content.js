@@ -1,0 +1,382 @@
+const express = require("express");
+const { supabase } = require("../lib/supabaseClient");
+const { authenticateRequest } = require("../middleware/authenticateRequest");
+
+const router = express.Router();
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "content-assets";
+router.use(authenticateRequest);
+
+const mapContent = (row) => {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    _id: row.id,
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    instagram: row.instagram || "",
+    twitter: row.twitter || "",
+    linkedin: row.linkedin || "",
+    discord: row.discord || "",
+    pictures: Array.isArray(row.pictures) ? row.pictures : [],
+    time: row.time,
+    date: row.date,
+    type: row.type || "static",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    lastUpdated: row.updated_at,
+  };
+};
+
+const normalizePictureItem = (item) => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const path = String(item.path || item.id || "").trim();
+  const url = String(item.url || "").trim();
+  const filename = String(item.filename || item.name || "").trim();
+
+  if (!path || !url) {
+    return null;
+  }
+
+  return {
+    id: path,
+    path,
+    url,
+    filename: filename || path.split("/").pop() || "file",
+  };
+};
+
+const normalizePictures = (value) => {
+  if (!value) {
+    return [];
+  }
+
+  let parsed = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  const seen = new Set();
+  const normalized = [];
+  for (const picture of parsed) {
+    const item = normalizePictureItem(picture);
+    if (!item || seen.has(item.id)) {
+      continue;
+    }
+    seen.add(item.id);
+    normalized.push(item);
+  }
+
+  return normalized;
+};
+
+const normalizeDateOnly = (dateValue) => {
+  if (!dateValue) {
+    return null;
+  }
+
+  if (typeof dateValue === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return dateValue;
+  }
+
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toISOString().slice(0, 10);
+};
+
+const normalizeIsoTime = (timeValue) => {
+  const parsed = new Date(timeValue);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toISOString();
+};
+
+const deletePicturesFromStorage = async (pictures) => {
+  const paths = [...new Set(
+    normalizePictures(pictures)
+      .map((picture) => picture.path || picture.id)
+      .filter(Boolean)
+  )];
+
+  if (paths.length === 0) {
+    return;
+  }
+
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).remove(paths);
+  if (error) {
+    throw error;
+  }
+};
+
+router.post("/create", async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      instagram,
+      twitter,
+      linkedin,
+      discord,
+      time,
+      date,
+      type,
+      pictures,
+    } = req.body || {};
+
+    if (!title || !description) {
+      return res
+        .status(400)
+        .json({ error: "Title and description are required" });
+    }
+
+    if (!time || !date) {
+      return res.status(400).json({ error: "Time and date are required" });
+    }
+
+    const normalizedDate = normalizeDateOnly(date);
+    const normalizedTime = normalizeIsoTime(time);
+
+    if (!normalizedDate || !normalizedTime) {
+      return res.status(400).json({ error: "Invalid date or time format" });
+    }
+
+    const payload = {
+      title,
+      description,
+      type: type || "static",
+      instagram: instagram || "",
+      twitter: twitter || "",
+      linkedin: linkedin || "",
+      discord: discord || "",
+      pictures: normalizePictures(pictures),
+      time: normalizedTime,
+      date: normalizedDate,
+    };
+
+    const { data, error } = await supabase
+      .from("content_items")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return res.status(201).json({
+      message: "Content created successfully!",
+      content: mapContent(data),
+    });
+  } catch (error) {
+    console.error("Error creating content:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.get("/all", async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("content_items")
+      .select("id, updated_at, date, time, type, title, description")
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    const formattedContents = (data || []).map((content) => ({
+      _id: content.id,
+      lastUpdated: content.updated_at,
+      date: content.date,
+      time: content.time,
+      type: content.type,
+      description: content.description,
+      title: content.title,
+    }));
+
+    return res.status(200).json(formattedContents);
+  } catch (error) {
+    console.error("Error fetching contents:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const contentId = req.params.id;
+
+    const { data, error } = await supabase
+      .from("content_items")
+      .select("*")
+      .eq("id", contentId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return res.status(404).json({ error: "Content not found" });
+    }
+
+    return res.status(200).json(mapContent(data));
+  } catch (error) {
+    console.error("Error fetching content:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.put("/update/:id", async (req, res) => {
+  try {
+    const contentId = req.params.id;
+
+    const {
+      title,
+      description,
+      instagram,
+      twitter,
+      linkedin,
+      discord,
+      time,
+      date,
+      type,
+      pictures,
+    } = req.body || {};
+
+    if (!title || !description) {
+      return res
+        .status(400)
+        .json({ error: "Title and description are required" });
+    }
+
+    if (!time || !date) {
+      return res.status(400).json({ error: "Time and date are required" });
+    }
+
+    const normalizedDate = normalizeDateOnly(date);
+    const normalizedTime = normalizeIsoTime(time);
+
+    if (!normalizedDate || !normalizedTime) {
+      return res.status(400).json({ error: "Invalid date or time format" });
+    }
+
+    const { data: existingContent, error: existingError } = await supabase
+      .from("content_items")
+      .select("id, pictures")
+      .eq("id", contentId)
+      .maybeSingle();
+
+    if (existingError) {
+      throw existingError;
+    }
+
+    if (!existingContent) {
+      return res.status(404).json({ error: "Content not found" });
+    }
+
+    const currentPictures = normalizePictures(existingContent.pictures);
+    const updatedPictures =
+      pictures === undefined
+        ? currentPictures
+        : normalizePictures(pictures);
+
+    const imagesToDelete = currentPictures.filter(
+      (current) =>
+        !updatedPictures.some((updated) => updated.id === current.id)
+    );
+
+    if (imagesToDelete.length > 0) {
+      await deletePicturesFromStorage(imagesToDelete);
+    }
+
+    const payload = {
+      title,
+      description,
+      instagram: instagram || "",
+      twitter: twitter || "",
+      linkedin: linkedin || "",
+      discord: discord || "",
+      pictures: updatedPictures,
+      time: normalizedTime,
+      date: normalizedDate,
+      type: type || "static",
+    };
+
+    const { data: updated, error: updateError } = await supabase
+      .from("content_items")
+      .update(payload)
+      .eq("id", contentId)
+      .select("*")
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return res.status(200).json({
+      message: "Content updated successfully!",
+      updatedContent: mapContent(updated),
+    });
+  } catch (error) {
+    console.error("Error updating content:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.delete("/delete/:id", async (req, res) => {
+  try {
+    const contentId = req.params.id;
+
+    const { data: content, error: findError } = await supabase
+      .from("content_items")
+      .select("id, pictures")
+      .eq("id", contentId)
+      .maybeSingle();
+
+    if (findError) {
+      throw findError;
+    }
+
+    if (!content) {
+      return res.status(404).json({ error: "Content not found" });
+    }
+
+    if (normalizePictures(content.pictures).length > 0) {
+      await deletePicturesFromStorage(content.pictures);
+    }
+
+    const { error: deleteError } = await supabase
+      .from("content_items")
+      .delete()
+      .eq("id", contentId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    return res.status(200).json({ message: "Task deleted successfully!" });
+  } catch (error) {
+    console.error("Error deleting content:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+module.exports = router;
