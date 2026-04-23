@@ -8,6 +8,7 @@ const FilePickerTrigger = ({
   images,
   setImages,
   mode,
+  onUploadingChange,
 }) => {
   return (
     <>
@@ -32,6 +33,7 @@ const FilePickerTrigger = ({
           images={images}
           setImages={setImages}
           mode={mode}
+          onUploadingChange={onUploadingChange}
         />
       )}
     </>

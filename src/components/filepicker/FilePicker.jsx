@@ -1,36 +1,74 @@
-import React, { useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "react-datepicker/dist/react-datepicker.css";
 import { IoCloudUploadOutline } from "react-icons/io5";
 import { MdOutlineSaveAlt } from "react-icons/md";
-import { RxCross2 } from "react-icons/rx";
+import { MdDeleteOutline } from "react-icons/md";
+import { RxCross2, RxFile } from "react-icons/rx";
 import { toast } from "react-toastify";
-import { resolvePictureDownloadUrl } from "../../utils/supabaseStorage";
+import {
+  resolvePictureDownloadUrl,
+  uploadPicturesToStorage,
+} from "../../utils/supabaseStorage";
 
-const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
+const FilePicker = ({ setIsOpen, images, setImages, mode, onUploadingChange }) => {
   const fileInputRef = useRef(null);
+  const [uploadingCount, setUploadingCount] = useState(0);
 
-  const handleImageChange = (e) => {
+  const isUploading = uploadingCount > 0;
+  const localFileNames = useMemo(
+    () =>
+      (images || []).map((image) =>
+        String(image.filename || image.name || "").toLowerCase()
+      ),
+    [images]
+  );
+
+  const updateUploading = (count) => {
+    setUploadingCount(count);
+    if (typeof onUploadingChange === "function") {
+      onUploadingChange(count > 0);
+    }
+  };
+
+  useEffect(
+    () => () => {
+      if (typeof onUploadingChange === "function") {
+        onUploadingChange(false);
+      }
+    },
+    [onUploadingChange]
+  );
+
+  const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) {
       return;
     }
 
-    setImages((prevImages) => {
-      const existingFiles = prevImages.map((file) =>
-        (file.name || file.filename).toLowerCase()
-      );
+    const uniqueFiles = files.filter(
+      (file) => !localFileNames.includes(file.name.toLowerCase())
+    );
 
-      const newFiles = files.filter(
-        (file) => !existingFiles.includes(file.name.toLowerCase())
-      );
+    if (!uniqueFiles.length) {
+      toast.error("This file is already added.");
+      return;
+    }
 
-      if (newFiles.length === 0) {
-        toast.error("This file is already added.");
-        return prevImages;
+    updateUploading(uniqueFiles.length);
+    try {
+      const uploaded = await uploadPicturesToStorage(uniqueFiles);
+      setImages((prevImages) => [...prevImages, ...uploaded]);
+      toast.success(
+        `${uploaded.length} file${uploaded.length > 1 ? "s" : ""} uploaded`
+      );
+    } catch (error) {
+      toast.error(error?.message || "Failed to upload files");
+    } finally {
+      updateUploading(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
-
-      return [...prevImages, ...newFiles];
-    });
+    }
   };
 
   const handleRemoveImage = (index) => {
@@ -73,6 +111,8 @@ const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
             onClick={() => setIsOpen(false)}
             className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-sm text-[#9da1a6] transition hover:bg-[#2d2d30] hover:text-[#d4d4d4]"
             type="button"
+            disabled={isUploading}
+            aria-label="Close file uploader"
           >
             <RxCross2 />
           </button>
@@ -99,8 +139,9 @@ const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
                       className="cursor-pointer text-[18px] text-[#9da1a6] transition hover:text-[#d4d4d4]"
                       onClick={() => handleRemoveImage(index)}
                       type="button"
+                      aria-label={`Remove ${fileName}`}
                     >
-                      <RxCross2 />
+                      <MdDeleteOutline />
                     </button>
                   ) : (
                     <button
@@ -116,13 +157,34 @@ const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
             })}
 
             {mode !== "view" && (
-              <label
-                htmlFor="file-upload"
-                className="mt-2 flex cursor-pointer items-center justify-center gap-3 rounded-md border border-dashed border-[#4f4f4f] bg-[#252526] px-4 py-3 text-center text-[#d4d4d4] transition hover:border-[#6b6b6b] hover:bg-[#2d2d30]"
-              >
-                <IoCloudUploadOutline className="text-[20px]" />
-                Select files to upload
-              </label>
+              <div className="mt-3 rounded-lg border border-[#3c3c3c] bg-[#252526] p-3">
+                <div className="mb-2 flex items-center gap-2 text-sm text-[#c8c8c8]">
+                  <RxFile className="text-base" />
+                  Upload to Drive
+                </div>
+                <label
+                  htmlFor="file-upload"
+                  className={`flex items-center justify-center gap-3 rounded-md border border-dashed border-[#4f4f4f] bg-[#2d2d30] px-4 py-3 text-center text-[#d4d4d4] transition ${
+                    isUploading
+                      ? "cursor-not-allowed opacity-65"
+                      : "cursor-pointer hover:border-[#6b6b6b] hover:bg-[#333338]"
+                  }`}
+                >
+                  <IoCloudUploadOutline className="text-[20px]" />
+                  {isUploading ? "Uploading..." : "Click to upload files"}
+                </label>
+                {isUploading && (
+                  <div className="mt-3">
+                    <div className="mb-1 text-xs text-[#9da1a6]">
+                      Uploading {uploadingCount} file
+                      {uploadingCount > 1 ? "s" : ""}
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-[#3a3a3f]">
+                      <div className="upload-indeterminate h-full w-full rounded-full bg-[#8a8a8a]" />
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             <input
@@ -133,6 +195,7 @@ const FilePicker = ({ setIsOpen, images, setImages, mode }) => {
               onChange={handleImageChange}
               className="hidden"
               ref={fileInputRef}
+              disabled={isUploading}
             />
           </div>
         </div>

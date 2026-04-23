@@ -37,6 +37,7 @@ const CreatePost = ({ mode }) => {
 
   const [loading, setLoading] = useState(false);
   const [openAssetsModal, setOpenAssetsModal] = useState(false);
+  const [isUploadingAssets, setIsUploadingAssets] = useState(false);
 
   const initialTime =
     task?.time && !Number.isNaN(new Date(task.time).getTime())
@@ -62,6 +63,17 @@ const CreatePost = ({ mode }) => {
   const [images, setImages] = useState(task?.pictures || []);
   const [activeContent, setActiveContent] = useState("instagram");
   const editorRef = useRef(null);
+  const hasPrimaryContent =
+    Boolean((content.description || "").trim()) ||
+    Boolean((content.instagram || "").trim()) ||
+    Boolean((content.twitter || "").trim()) ||
+    Boolean((content.linkedin || "").trim()) ||
+    Boolean((content.discord || "").trim());
+  const canSchedule =
+    Boolean((content.title || "").trim()) &&
+    hasPrimaryContent &&
+    !loading &&
+    !isUploadingAssets;
 
   useEffect(() => {
     if (editorRef.current) {
@@ -72,8 +84,20 @@ const CreatePost = ({ mode }) => {
   const handleSave = async () => {
     setLoading(true);
 
-    if (content.title === "" || content.description === "") {
-      toast.error("Title and Description are required.");
+    if (!content.title.trim()) {
+      toast.error("Title is required.");
+      setLoading(false);
+      return;
+    }
+
+    if (!hasPrimaryContent) {
+      toast.error("Add description or channel copy before scheduling.");
+      setLoading(false);
+      return;
+    }
+
+    if (isUploadingAssets) {
+      toast.error("Please wait for file uploads to finish.");
       setLoading(false);
       return;
     }
@@ -153,10 +177,12 @@ const CreatePost = ({ mode }) => {
             <div className="flex items-center gap-3 w-full lg:w-auto">
               <button
                 className="pill-btn text-[16px] font-semibold flex-1 lg:flex-none rounded-xl cursor-pointer justify-center py-3 px-6 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!content.title || !content.description || loading}
+                disabled={!canSchedule}
                 onClick={handleSave}
               >
-                {mode === "edit" ? "Update" : "Schedule"} Post
+                {isUploadingAssets
+                  ? "Uploading files..."
+                  : `${mode === "edit" ? "Update" : "Schedule"} Post`}
               </button>
 
               <button
@@ -186,6 +212,7 @@ const CreatePost = ({ mode }) => {
               setOpenAssetsModal={setOpenAssetsModal}
               images={images}
               setImages={setImages}
+              onUploadingChange={setIsUploadingAssets}
             />
           </div>
 
