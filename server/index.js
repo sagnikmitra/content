@@ -1,16 +1,17 @@
+const path = require("path");
 const dotenv = require("dotenv");
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const express = require("express");
 var cors = require("cors");
 const cookieParser = require("cookie-parser");
-const path = require("path");
 const bodyParser = require("body-parser");
-const { ensureDefaultAdminUser } = require("./bootstrap/adminUser");
+const { ensureAdminInitialized } = require("./bootstrap/adminUser");
 
 let port = process.env.PORT || 5000;
 const app = express();
-ensureDefaultAdminUser().catch((error) => {
+ensureAdminInitialized().catch((error) => {
   console.error("Initial admin bootstrap failed:", error.message);
 });
 

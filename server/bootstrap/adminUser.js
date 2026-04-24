@@ -98,6 +98,18 @@ const ensureDefaultAdminUser = async () => {
   }
 };
 
+let adminBootstrapPromise = null;
+const ensureAdminInitialized = async () => {
+  if (!adminBootstrapPromise) {
+    adminBootstrapPromise = ensureDefaultAdminUser().catch((error) => {
+      adminBootstrapPromise = null;
+      throw error;
+    });
+  }
+  return adminBootstrapPromise;
+};
+
 module.exports = {
   ensureDefaultAdminUser,
+  ensureAdminInitialized,
 };

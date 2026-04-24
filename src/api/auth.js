@@ -16,7 +16,7 @@ export const checkEmailStatus = async (identifier) => {
   });
 
   if (!isSuccessStatus(response.status)) {
-    throw new Error(response.data?.message || "Failed to verify email");
+    throw new Error(response.data?.message || response.message || "Failed to verify email");
   }
 
   return response.data;
@@ -24,12 +24,12 @@ export const checkEmailStatus = async (identifier) => {
 
 export const loginWithPassword = async ({ identifier, password }) => {
   const response = await apiConnector("POST", AUTH_LOGIN_API, {
-    identifier,
-    password,
+    identifier: (identifier || "").trim(),
+    password: password || "",
   });
 
   if (!isSuccessStatus(response.status)) {
-    throw new Error(response.data?.message || "Failed to sign in");
+    throw new Error(response.data?.message || response.message || "Failed to sign in");
   }
 
   return response.data;
@@ -39,7 +39,7 @@ export const createEntryAccount = async (payload) => {
   const response = await apiConnector("POST", AUTH_ENTRY_API, payload);
 
   if (!isSuccessStatus(response.status)) {
-    throw new Error(response.data?.message || "Failed to create account");
+    throw new Error(response.data?.message || response.message || "Failed to create account");
   }
 
   return response.data;
@@ -55,7 +55,7 @@ export const logoutUser = async (token) => {
   const response = await apiConnector("POST", AUTH_LOGOUT_API, null, headers);
 
   if (!isSuccessStatus(response.status)) {
-    throw new Error(response.data?.message || "Failed to logout");
+    throw new Error(response.data?.message || response.message || "Failed to logout");
   }
 
   return response.data;
@@ -67,7 +67,7 @@ export const requestPasswordReset = async (email) => {
   });
 
   if (!isSuccessStatus(response.status)) {
-    throw new Error(response.data?.message || "Failed to request reset");
+    throw new Error(response.data?.message || response.message || "Failed to request reset");
   }
 
   return response.data;
@@ -80,7 +80,7 @@ export const resetPassword = async ({ token, password }) => {
   });
 
   if (!isSuccessStatus(response.status)) {
-    throw new Error(response.data?.message || "Failed to reset password");
+    throw new Error(response.data?.message || response.message || "Failed to reset password");
   }
 
   return response.data;

@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { supabase } = require("../lib/supabaseClient");
+const { ensureAdminInitialized } = require("../bootstrap/adminUser");
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "7d";
@@ -69,8 +70,27 @@ const fetchUserForLogin = async (candidate) => {
   return data;
 };
 
+const mapAuthErrorMessage = (error) => {
+  const rawMessage = String(error?.message || "");
+
+  if (rawMessage.includes("relation") && rawMessage.includes("app_users")) {
+    return "Database not initialized. Run server/supabase/schema.sql in Supabase SQL Editor.";
+  }
+
+  if (
+    rawMessage.includes("Invalid API key") ||
+    rawMessage.includes("JWT") ||
+    rawMessage.includes("401")
+  ) {
+    return "Supabase credentials are invalid. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.";
+  }
+
+  return null;
+};
+
 exports.getEmailStatus = async (req, res) => {
   try {
+    await ensureAdminInitialized();
     const { email, identifier } = req.body || {};
     const candidate = (identifier || email || "").trim();
 
@@ -93,12 +113,16 @@ exports.getEmailStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Auth:getEmailStatus error:", error);
-    return res.status(500).json({ message: "Failed to resolve email status" });
+    const mappedMessage = mapAuthErrorMessage(error);
+    return res.status(500).json({
+      message: mappedMessage || "Failed to resolve email status",
+    });
   }
 };
 
 exports.loginUser = async (req, res) => {
   try {
+    await ensureAdminInitialized();
     const { email, identifier, password } = req.body || {};
     const candidate = (identifier || email || "").trim();
 
@@ -136,7 +160,10 @@ exports.loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Auth:loginUser error:", error);
-    return res.status(500).json({ message: "Failed to sign in" });
+    const mappedMessage = mapAuthErrorMessage(error);
+    return res.status(500).json({
+      message: mappedMessage || "Failed to sign in",
+    });
   }
 };
 

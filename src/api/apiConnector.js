@@ -39,8 +39,12 @@ export const apiConnector = async (method, url, bodyData, headers, params) => {
       return error.response;
     }
     return {
-      status: "unknown",
-      message: "An unknown error occurred",
+      status: 0,
+      data: {
+        message:
+          error?.message ||
+          "Network request failed. Check API base URL and backend availability.",
+      },
     };
   }
 };
