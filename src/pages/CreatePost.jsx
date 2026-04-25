@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { format } from "date-fns";
 import React, { useEffect, useRef, useState } from "react";
 import { AiOutlineDiscord } from "react-icons/ai";
 import { FaXTwitter } from "react-icons/fa6";
@@ -74,6 +75,10 @@ const CreatePost = ({ mode }) => {
     hasPrimaryContent &&
     !loading &&
     !isUploadingAssets;
+  const scheduledAtLabel =
+    selectedTime instanceof Date
+      ? `${format(parseDateValue(selectedDate), "EEE, MMM d")} · ${format(selectedTime, "h:mm a")}`
+      : "";
 
   useEffect(() => {
     if (editorRef.current) {
@@ -142,7 +147,11 @@ const CreatePost = ({ mode }) => {
       navigate("/");
     } catch (error) {
       console.error("Error saving post:", error);
-      toast.error("Failed to save post.");
+      toast.error(
+        error?.message ||
+          error?.response?.data?.error ||
+          "Failed to save post."
+      );
     } finally {
       setLoading(false);
     }
@@ -160,19 +169,24 @@ const CreatePost = ({ mode }) => {
       <div className="mx-auto max-w-6xl glass-panel rounded-3xl p-4 md:p-6">
         <div className="flex flex-col gap-4 md:gap-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <input
-              type="text"
-              className="h-[54px] w-full border-b border-[#3c3c3c] bg-transparent font-outfit text-[22px] font-semibold text-[#d4d4d4] outline-none placeholder:text-[#8e8e90] ring-0 focus:ring-0 md:text-[30px] lg:w-[64%]"
-              placeholder="Add a title"
-              autoFocus
-              onChange={(e) =>
-                setContent((prev) => ({
-                  ...prev,
-                  title: e.target.value,
-                }))
-              }
-              value={content.title || ""}
-            />
+            <div className="w-full lg:w-[64%]">
+              <input
+                type="text"
+                className="h-[54px] w-full border-b border-[#3c3c3c] bg-transparent font-outfit text-[22px] font-semibold text-[#d4d4d4] outline-none placeholder:text-[#8e8e90] ring-0 focus:ring-0 md:text-[30px]"
+                placeholder="Add a title"
+                autoFocus
+                onChange={(e) =>
+                  setContent((prev) => ({
+                    ...prev,
+                    title: e.target.value,
+                  }))
+                }
+                value={content.title || ""}
+              />
+              <p className="mt-2 text-xs text-[#9da1a6]">
+                Publishing slot: {scheduledAtLabel || "Select date & time"}
+              </p>
+            </div>
 
             <div className="flex items-center gap-3 w-full lg:w-auto">
               <button
@@ -214,6 +228,39 @@ const CreatePost = ({ mode }) => {
               setImages={setImages}
               onUploadingChange={setIsUploadingAssets}
             />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span
+              className={clsx(
+                "rounded-full border px-3 py-1",
+                content.title.trim()
+                  ? "border-[#4e5d52] bg-[#213128] text-[#96c7a5]"
+                  : "border-[#4f4f4f] bg-[#2d2d30] text-[#9da1a6]"
+              )}
+            >
+              {content.title.trim() ? "Title ready" : "Add title"}
+            </span>
+            <span
+              className={clsx(
+                "rounded-full border px-3 py-1",
+                hasPrimaryContent
+                  ? "border-[#4e5d52] bg-[#213128] text-[#96c7a5]"
+                  : "border-[#4f4f4f] bg-[#2d2d30] text-[#9da1a6]"
+              )}
+            >
+              {hasPrimaryContent ? "Content ready" : "Add channel copy"}
+            </span>
+            <span
+              className={clsx(
+                "rounded-full border px-3 py-1",
+                isUploadingAssets
+                  ? "border-[#5b4f3b] bg-[#322a1f] text-[#d6c399]"
+                  : "border-[#4e5d52] bg-[#213128] text-[#96c7a5]"
+              )}
+            >
+              {isUploadingAssets ? "Uploading assets…" : "Assets synced"}
+            </span>
           </div>
 
           <textarea

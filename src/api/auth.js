@@ -29,7 +29,12 @@ export const loginWithPassword = async ({ identifier, password }) => {
   });
 
   if (!isSuccessStatus(response.status)) {
-    throw new Error(response.data?.message || response.message || "Failed to sign in");
+    throw new Error(
+      response.data?.message ||
+        response.message ||
+        (response.status ? `Failed to sign in (${response.status})` : "") ||
+        "Failed to sign in"
+    );
   }
 
   return response.data;

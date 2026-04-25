@@ -3,24 +3,23 @@ import { getTaskHeight, getTaskTop } from "../../utils/Calendar";
 
 const Task = ({ task, setPopupPos, setSelectedTask }) => {
   const startTime = new Date(task.time);
-  const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // Add 10 mins
-
+  const endTime = new Date(startTime.getTime() + 45 * 60 * 1000);
   const top = getTaskTop(startTime);
-  const height = getTaskHeight(startTime, endTime);
+  const height = Math.max(30, getTaskHeight(startTime, endTime));
 
-  let bgColor = "bg-[#4a90e2]";
+  let cardStyle = "border-[#5f5f68] bg-[#35353c]";
   if (task.type === "static") {
-    bgColor = "bg-[#044327e2] border border-[#246942]";
+    cardStyle = "border-[#365245] bg-[#203329]";
   } else if (task.type === "video") {
-    bgColor = "bg-[#042f43e2] border border-[#1e4658]";
+    cardStyle = "border-[#3e4f5c] bg-[#25313a]";
   } else if (task.type === "live") {
-    bgColor = "bg-[#4a1e1ee2] border border-[#663939]";
+    cardStyle = "border-[#5b3a3a] bg-[#3a2525]";
   }
 
   return (
     <div
       key={task._id || task.id}
-      className={`absolute md:left-2 left-[2px] cursor-pointer right-2 text-white md:w-auto w-[95%] text-[11px] md:text-[13px] leading-[14px] rounded-md px-2 py-1 shadow-md ${bgColor} overflow-hidden whitespace-nowrap text-ellipsis`}
+      className={`absolute left-1 right-1 cursor-pointer overflow-hidden rounded-md border px-2 py-1 text-[11px] leading-[14px] text-[#f1f1f3] shadow-md md:left-2 md:right-2 md:text-[13px] ${cardStyle}`}
       style={{ top: `${top}px`, height: `${height}px` }}
       title={` ${task.title}, ${new Date(task.time).toLocaleTimeString([], {
         hour: "2-digit",
@@ -29,14 +28,20 @@ const Task = ({ task, setPopupPos, setSelectedTask }) => {
       onClick={(e) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const container = document.getElementById("calendar-scroll-container");
+        if (!container) {
+          return;
+        }
 
-        const popupHeight = 300; // Approx. popup height in px
+        const popupHeight = 320;
+        const popupWidth = window.innerWidth < 960 ? 280 : 340;
         const padding = 10;
-
         const containerRect = container.getBoundingClientRect();
         let calculatedTop = rect.top + window.scrollY;
+        let calculatedLeft =
+          window.innerWidth < 960
+            ? rect.left + window.scrollX
+            : rect.left + window.scrollX - popupWidth - 12;
 
-        // Clamp top to keep popup within container bounds
         if (
           calculatedTop + popupHeight >
           containerRect.bottom + window.scrollY
@@ -47,22 +52,26 @@ const Task = ({ task, setPopupPos, setSelectedTask }) => {
           calculatedTop = containerRect.top + window.scrollY + padding;
         }
 
+        const minLeft = padding + window.scrollX;
+        const maxLeft =
+          window.scrollX + window.innerWidth - popupWidth - padding;
+        calculatedLeft = Math.min(Math.max(calculatedLeft, minLeft), maxLeft);
+
         setPopupPos({
           top: calculatedTop,
-          left:
-            window.innerWidth < 960
-              ? Math.max(10, rect.left + window.scrollX - 12)
-              : rect.left - 360 + window.scrollX,
+          left: calculatedLeft,
         });
 
         setSelectedTask(task);
       }}
     >
-      {task.title},{" "}
-      {new Date(task.time).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}
+      <p className="truncate font-medium">{task.title}</p>
+      <p className="text-[10px] text-[#d3d3d7] md:text-[11px]">
+        {new Date(task.time).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </p>
     </div>
   );
 };

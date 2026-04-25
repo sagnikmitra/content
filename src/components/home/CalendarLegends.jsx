@@ -1,26 +1,26 @@
 const CalendarLegends = () => {
   return (
     <div className="font-outfit">
-      <p className="text-[#e6f0ff] font-semibold">Content Types</p>
+      <p className="font-semibold text-[#d4d4d4]">Content Types</p>
 
-      <div className="flex flex-col gap-2 mt-4">
+      <div className="mt-4 flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <div className="border-[#246942] border-[1px] aspect-square w-4 h-4  text-[#78ca9e] bg-[#044327e2]  rounded-[3px]">
+          <div className="aspect-square h-4 w-4 rounded-[3px] border border-[#365245] bg-[#203329]">
             &nbsp;
           </div>
-          <p className="text-[#cfe2ff] text-sm">Static Post</p>
+          <p className="text-sm text-[#c9c9cc]">Static Post</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="border-[#1e4658] border-[1px] aspect-square w-4 h-4  text-[#78ca9e] bg-[#042f43e2]  rounded-[3px]">
+          <div className="aspect-square h-4 w-4 rounded-[3px] border border-[#3e4f5c] bg-[#25313a]">
             &nbsp;
           </div>
-          <p className="text-[#cfe2ff] text-sm">Video/Reel</p>
+          <p className="text-sm text-[#c9c9cc]">Video/Reel</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="border-[#663939] border-[1px] aspect-square w-4 h-4 text-[#ff9c9c] bg-[#4a1e1ee2] rounded-[3px]">
+          <div className="aspect-square h-4 w-4 rounded-[3px] border border-[#5b3a3a] bg-[#3a2525]">
             &nbsp;
           </div>
-          <p className="text-[#cfe2ff] text-sm">Live Event</p>
+          <p className="text-sm text-[#c9c9cc]">Live Event</p>
         </div>
       </div>
     </div>

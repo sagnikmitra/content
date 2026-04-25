@@ -5,6 +5,11 @@ const { ensureAdminInitialized } = require("../bootstrap/adminUser");
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "7d";
+const DEFAULT_ADMIN_USERNAME_FALLBACK = "admin";
+const DEFAULT_ADMIN_EMAIL_FALLBACK = "admin@adm.in";
+const ADMIN_USERNAME = (process.env.ADMIN_USERNAME || "admin")
+  .trim()
+  .toLowerCase();
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "admin@adm.in")
   .trim()
   .toLowerCase();
@@ -12,6 +17,19 @@ const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "admin@adm.in")
 const isValidEmail = (email) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || "").trim());
 const normalizeEmail = (email) => (email || "").trim().toLowerCase();
+const normalizeUsername = (value) => (value || "").trim().toLowerCase();
+const isAdminIdentifier = (identifier) => {
+  const candidate = String(identifier || "").trim();
+  if (!candidate) {
+    return false;
+  }
+
+  if (isValidEmail(candidate)) {
+    return normalizeEmail(candidate) === ADMIN_EMAIL;
+  }
+
+  return normalizeUsername(candidate) === ADMIN_USERNAME;
+};
 
 const mapUser = (row) => {
   if (!row) {
@@ -59,11 +77,13 @@ const resolveAvailableUsername = async (base) => {
 };
 
 const fetchUserForLogin = async (candidate) => {
-  const { data, error } = await supabase
-    .from("app_users")
-    .select("*")
-    .eq("email", normalizeEmail(candidate))
-    .maybeSingle();
+  const normalizedCandidate = String(candidate || "").trim();
+  const query = supabase.from("app_users").select("*");
+  const userQuery = isValidEmail(normalizedCandidate)
+    ? query.eq("email", normalizeEmail(normalizedCandidate))
+    : query.eq("username", normalizeUsername(normalizedCandidate));
+
+  const { data, error } = await userQuery.maybeSingle();
   if (error) {
     throw error;
   }
@@ -97,19 +117,15 @@ exports.getEmailStatus = async (req, res) => {
     if (!candidate) {
       return res.status(400).json({ message: "Email or username is required" });
     }
-    if (!isValidEmail(candidate)) {
-      return res.status(400).json({ message: "Enter a valid admin email" });
-    }
 
-    const normalizedEmail = normalizeEmail(candidate);
-    if (normalizedEmail !== ADMIN_EMAIL) {
+    if (!isAdminIdentifier(candidate)) {
       return res.status(403).json({ message: "Only admin login is allowed" });
     }
 
     return res.status(200).json({
       exists: true,
       nextStep: "existing_password",
-      identifier: ADMIN_EMAIL,
+      identifier: isValidEmail(candidate) ? ADMIN_EMAIL : ADMIN_USERNAME,
     });
   } catch (error) {
     console.error("Auth:getEmailStatus error:", error);
@@ -132,13 +148,17 @@ exports.loginUser = async (req, res) => {
         .json({ message: "Email/username and password are both required" });
     }
 
-    if (!isValidEmail(candidate) || normalizeEmail(candidate) !== ADMIN_EMAIL) {
-      return res.status(403).json({ message: "Only admin login is allowed" });
-    }
-
     const user = await fetchUserForLogin(candidate);
 
-    if (!user || !user.password_hash || normalizeEmail(user.email) !== ADMIN_EMAIL) {
+    const isConfiguredAdmin =
+      normalizeEmail(user?.email) === ADMIN_EMAIL ||
+      normalizeUsername(user?.username) === ADMIN_USERNAME;
+    const isFallbackAdmin =
+      normalizeEmail(user?.email) === DEFAULT_ADMIN_EMAIL_FALLBACK ||
+      normalizeUsername(user?.username) === DEFAULT_ADMIN_USERNAME_FALLBACK;
+    const isAllowedUser = isConfiguredAdmin || isFallbackAdmin;
+
+    if (!user || !user.password_hash || !isAllowedUser) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 

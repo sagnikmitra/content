@@ -53,16 +53,20 @@ const TaskPopup = ({ task, position, onClose }) => {
   return (
     <>
       <div
-        className="absolute z-50 w-[calc(100vw-20px)] md:w-[350px] p-4 bg-[#172b49] border border-[#2f527f] rounded-xl text-sm text-[#e3e3e3] shadow-[0_20px_45px_rgba(0,0,0,0.35)]"
+        className="absolute z-50 w-[calc(100vw-20px)] rounded-xl border border-[#3c3c3c] bg-[#252526] p-4 text-sm text-[#e3e3e3] shadow-[0_20px_45px_rgba(0,0,0,0.45)] md:w-[340px]"
         style={{ top: position.top, left: position.left }}
       >
-        <div className="flex justify-end gap-8 items-center mb-5">
-          <div className="flex items-center gap-4">
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-xs uppercase tracking-[0.18em] text-[#9da1a6]">
+            Scheduled Post
+          </p>
+          <div className="flex items-center gap-3">
             <button
               onClick={() => {
                 fetchContent({ mode: "edit" });
               }}
-              className="text-gray-400 hover:text-white text-[20px] cursor-pointer"
+              className="cursor-pointer text-[18px] text-[#9da1a6] transition hover:text-white"
+              title="Edit"
             >
               <MdOutlineEdit />
             </button>
@@ -70,19 +74,21 @@ const TaskPopup = ({ task, position, onClose }) => {
               onClick={() => {
                 setShowDeleteModal(true);
               }}
-              className="text-gray-400 hover:text-white text-[20px] cursor-pointer"
+              className="cursor-pointer text-[18px] text-[#9da1a6] transition hover:text-white"
+              title="Delete"
             >
               <MdOutlineDelete />
             </button>
+            <button
+              onClick={onClose}
+              className="cursor-pointer text-[16px] text-[#9da1a6] transition hover:text-white"
+              title="Close"
+            >
+              ✕
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-[17px] cursor-pointer"
-          >
-            ✕
-          </button>
         </div>
-        <div className="flex justify-between items-start mb-2">
+        <div className="mb-2 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <h3 className="font-semibold m-0 text-[17px] break-words max-w-[300px] line-clamp-2 leading-snug">
               {task.title}
@@ -90,7 +96,7 @@ const TaskPopup = ({ task, position, onClose }) => {
           </div>
         </div>
 
-        <div className="flex items-center mb-4 gap-2">
+        <div className="mb-4 flex items-center gap-2">
           {task.type === "static" ? (
             <div className="border-[#246942] border-[1px] mt-[1px] aspect-square w-4 h-4 text-[#78ca9e] bg-[#044327e2] rounded-[3px]">
               &nbsp;
@@ -105,19 +111,19 @@ const TaskPopup = ({ task, position, onClose }) => {
             </div>
           )}
 
-          <p className="text-[14px] font-normal text-[#e3e3e3]  flex items-center gap-2">
+          <p className="flex items-center gap-2 text-[13px] font-normal text-[#c8c8c8]">
             <span>{formattedDate} </span>
             <span>at</span>
             <span>{formattedStart} </span>
           </p>
         </div>
 
-        <p className="text-[16px] mt-[30px] font-normal text-[#e3e3e3] opacity-80 break-words max-w-[320px] line-clamp-2 leading-snug">
+        <p className="mt-4 max-w-[320px] break-words text-[14px] leading-snug text-[#d4d4d4] opacity-85 line-clamp-3">
           {task.description}
         </p>
 
         <div
-          className="mt-6 inline-flex items-center gap-3 bg-[#a8c8fb] cursor-pointer text-[#000000] font-medium text-[16px] py-2 px-5 rounded-md transition-colors"
+          className="mt-6 inline-flex cursor-pointer items-center gap-2 rounded-md border border-[#4a4a4f] bg-[#2d2d30] px-4 py-2 text-[14px] font-medium text-[#f2f2f2] transition hover:bg-[#3a3a3f]"
           onClick={() => {
             fetchContent({ mode: "view" });
             onClose();

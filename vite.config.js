@@ -1,18 +1,22 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 
+dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const DEV_API_TARGET = process.env.VITE_DEV_API_URL || "http://localhost:5050";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      "/auth": "http://localhost:5000",
-      "/content": "http://localhost:5000",
+      "/auth/": DEV_API_TARGET,
+      "/content/": DEV_API_TARGET,
     },
   },
   resolve: {

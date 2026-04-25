@@ -49,7 +49,11 @@ export const uploadPicturesToStorage = async (files = []) => {
 
   const response = await apiConnector("POST", ADD_IMAGE_API, formData);
   if (response.status !== 201) {
-    throw new Error(response.data?.error || "Failed to upload files");
+    throw new Error(
+      response.data?.error ||
+        response.data?.message ||
+        "Failed to upload files"
+    );
   }
 
   return normalizeExistingPictures(response.data?.pictures || []);

@@ -19,6 +19,32 @@ const upload = multer({
 });
 router.use(authenticateRequest);
 
+const uploadPicturesMiddleware = (req, res, next) => {
+  upload.array("pictures", 20)(req, res, (error) => {
+    if (!error) {
+      return next();
+    }
+
+    if (error instanceof multer.MulterError) {
+      if (error.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({
+          error: "File too large. Maximum allowed size is 25MB per file.",
+        });
+      }
+
+      if (error.code === "LIMIT_FILE_COUNT") {
+        return res.status(400).json({
+          error: "Too many files. You can upload up to 20 files at a time.",
+        });
+      }
+    }
+
+    return res.status(400).json({
+      error: error.message || "Invalid upload request",
+    });
+  });
+};
+
 const mapContent = (row) => {
   if (!row) {
     return null;
@@ -198,7 +224,7 @@ const uploadFilesToSupabase = async (files = []) => {
   return uploaded;
 };
 
-router.post("/add-image", upload.array("pictures", 20), async (req, res) => {
+router.post("/add-image", uploadPicturesMiddleware, async (req, res) => {
   try {
     const files = req.files || [];
     if (files.length === 0) {
@@ -212,7 +238,9 @@ router.post("/add-image", upload.array("pictures", 20), async (req, res) => {
     return res.status(201).json({ pictures });
   } catch (error) {
     console.error("Error uploading files:", error);
-    return res.status(500).json({ error: "Failed to upload files" });
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "Failed to upload files",
+    });
   }
 });
 

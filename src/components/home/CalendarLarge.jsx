@@ -1,6 +1,15 @@
 import clsx from "clsx";
-import { addDays, format, isToday, startOfWeek, subDays } from "date-fns";
-import React, { useEffect, useState } from "react";
+import {
+  addDays,
+  endOfDay,
+  format,
+  isSameDay,
+  isToday,
+  startOfDay,
+  startOfWeek,
+  subDays,
+} from "date-fns";
+import React, { useEffect, useMemo, useState } from "react";
 import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -12,6 +21,8 @@ import { formatDateKey, parseDateValue } from "../../utils/date";
 import Task from "../calendar/Task";
 import TaskPopup from "../calendar/TaskPopup";
 
+const ROW_HEIGHT = 50;
+
 const CalendarLarge = ({ tasks }) => {
   const dispatch = useDispatch();
   const selectedDate = useSelector(selectSelectedDate);
@@ -20,7 +31,18 @@ const CalendarLarge = ({ tasks }) => {
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const [isMobile, setIsMobile] = useState(false);
 
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const totalDays = isMobile ? 3 : 5;
+  const rangeStart = parseDateValue(selectedDate);
+  const rangeEnd = addDays(rangeStart, totalDays - 1);
+  const weekStart = startOfWeek(rangeStart, { weekStartsOn: 1 });
+
+  const visibleTasks = useMemo(() => {
+    const safeTasks = Array.isArray(tasks) ? tasks : [];
+    return safeTasks.filter((task) => {
+      const taskDate = parseDateValue(task.date);
+      return taskDate >= startOfDay(rangeStart) && taskDate <= endOfDay(rangeEnd);
+    });
+  }, [rangeEnd, rangeStart, tasks]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -48,11 +70,9 @@ const CalendarLarge = ({ tasks }) => {
     const container = document.getElementById("calendar-scroll-container");
     if (container) {
       const top = getTaskTop(currentTime);
-      container.scrollTop = top - 36;
+      container.scrollTop = Math.max(0, top - ROW_HEIGHT);
     }
   }, [currentTime]);
-
-  const totalDays = isMobile ? 3 : 5;
 
   const renderHeader = () => {
     const days = [];
@@ -60,83 +80,103 @@ const CalendarLarge = ({ tasks }) => {
     days.push(
       <div
         key="time-label"
-        className="border-r border-[#2d4c77] md:w-[76px] w-[56px]"
+        className="sticky left-0 z-20 w-[64px] border-r border-[#3c3c3c] bg-[#1f1f22] md:w-[84px]"
       />
     );
 
-    let currentDate = new Date(selectedDate);
+    let currentDate = new Date(rangeStart);
 
-    for (let i = 0; i < totalDays; i++) {
-      const isTodayDate = isToday(currentDate);
+    for (let index = 0; index < totalDays; index++) {
+      const dateForCell = new Date(currentDate);
+      const isTodayDate = isToday(dateForCell);
+      const isSelectedDate = isSameDay(dateForCell, parseDateValue(selectedDate));
+
       days.push(
-        <div
-          key={i}
-          className="flex-1 flex flex-col items-center justify-center py-2 border-r border-[#2d4c77] text-xs md:text-sm font-medium"
+        <button
+          key={formatDateKey(dateForCell)}
+          type="button"
+          className={clsx(
+            "flex-1 border-r border-[#3c3c3c] py-2 text-xs md:text-sm",
+            isSelectedDate ? "bg-[#313136]" : "bg-[#252526]"
+          )}
+          onClick={() => dispatch(setSelectedDate(dateForCell))}
         >
-          <div className="text-[#acc7eb]">{format(currentDate, "EEE")}</div>
+          <div className="font-medium text-[#a5a7ab]">
+            {isTodayDate ? "Today" : format(dateForCell, "EEE")}
+          </div>
           <div
             className={clsx(
-              "mt-1 text-[16px] md:text-[18px] w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full",
-              isTodayDate ? "bg-[#3ec6ff] text-[#00111f]" : "text-[#e8f2ff]"
+              "mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-[16px] md:h-9 md:w-9 md:text-[18px]",
+              isTodayDate
+                ? "bg-[#d4d4d4] text-[#1e1e1e]"
+                : isSelectedDate
+                  ? "bg-[#4b4b52] text-[#f4f4f4]"
+                  : "text-[#d4d4d4]"
             )}
           >
-            {format(currentDate, "d")}
+            {format(dateForCell, "d")}
           </div>
-        </div>
+        </button>
       );
       currentDate = addDays(currentDate, 1);
     }
 
-    return <div className="flex w-full border-b border-[#2d4c77]">{days}</div>;
+    return <div className="sticky top-0 z-20 flex w-full border-b border-[#3c3c3c]">{days}</div>;
   };
 
   const renderGrid = () => {
     return (
       <div className="flex w-full">
         {[...Array(totalDays + 1)].map((_, dayIndex) => {
-          const isTimeColumn = dayIndex === 0;
-
-          if (isTimeColumn) {
+          if (dayIndex === 0) {
             return (
               <div
                 key="time-col"
-                className="md:w-[76px] w-[56px] flex flex-col border-r border-[#2d4c77]"
+                className="sticky left-0 z-10 flex w-[64px] flex-col border-r border-[#3c3c3c] bg-[#1f1f22] md:w-[84px]"
               >
-                {hours.map((time, idx) => (
+                {hours.map((timeLabel, idx) => (
                   <div
                     key={idx}
-                    className="h-[50px] text-right pr-2 text-[10px] md:text-xs text-[#8dabd4] relative top-[-25px] flex items-center justify-end"
+                    className="relative top-[-25px] flex h-[50px] items-center justify-end pr-2 text-right text-[10px] text-[#8e8e90] md:text-xs"
                   >
-                    {time === "12 AM" ? "" : time}
+                    {timeLabel === "12 AM" ? "" : timeLabel}
                   </div>
                 ))}
               </div>
             );
           }
 
-          const date = addDays(parseDateValue(selectedDate), dayIndex - 1);
+          const date = addDays(parseDateValue(rangeStart), dayIndex - 1);
           const dateKey = formatDateKey(date);
-          const dayTasks = tasks.filter((task) => {
-            return formatDateKey(task.date) === dateKey;
-          });
+          const dayTasks = visibleTasks
+            .filter((task) => formatDateKey(task.date) === dateKey)
+            .sort(
+              (first, second) =>
+                parseDateValue(first.time).getTime() -
+                parseDateValue(second.time).getTime()
+            );
+          const isSelectedDate = isSameDay(date, parseDateValue(selectedDate));
 
           return (
             <div
-              key={dayIndex}
-              className="flex-1 flex flex-col border-r border-[#2d4c77] relative"
+              key={dateKey}
+              className={clsx(
+                "relative flex flex-1 flex-col border-r border-[#3c3c3c]",
+                isSelectedDate ? "bg-[#242429]" : "bg-[#202022]"
+              )}
             >
               {hours.map((_, timeIndex) => (
-                <div key={timeIndex} className="h-[50px] border-b border-[#1f3760]" />
+                <div key={timeIndex} className="h-[50px] border-b border-[#2d2d30]" />
               ))}
 
               {isToday(date) && (
                 <>
                   <div
-                    className="absolute left-0 right-0 h-[2px] bg-[#ff8a66] z-50"
+                    className="absolute left-0 right-0 z-50 h-[2px] bg-[#9b9ba2]"
                     style={{ top: `${getTaskTop(currentTime)}px` }}
                   />
                   <div
-                    className="absolute w-3 h-3 bg-[#ff8a66] rounded-full z-50"
+                    className="absolute z-50 h-3 w-3 rounded-full bg-[#9b9ba2]"
                     style={{
                       top: `${getTaskTop(currentTime) - 5}px`,
                       left: "-6px",
@@ -161,40 +201,52 @@ const CalendarLarge = ({ tasks }) => {
   };
 
   const navigateDays = (direction) => {
-    const daysToNavigate = totalDays;
     const newDate =
       direction === "next"
-        ? addDays(selectedDate, daysToNavigate)
-        : subDays(selectedDate, daysToNavigate);
+        ? addDays(selectedDate, totalDays)
+        : subDays(selectedDate, totalDays);
 
     dispatch(setSelectedDate(newDate));
   };
 
   return (
-    <div className="w-full font-outfit text-[#cfe1ff] relative">
-      <div className="mb-3 flex items-center justify-between px-1">
-        <h2 className="text-base md:text-lg font-semibold">
-          Week of {format(weekStart, "MMM d")}
-        </h2>
+    <div className="relative w-full font-outfit text-[#d4d4d4]">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
+        <div>
+          <h2 className="text-base font-semibold md:text-lg">
+            {format(rangeStart, "MMM d")} - {format(rangeEnd, "MMM d")}
+          </h2>
+          <p className="text-xs text-[#9da1a6]">
+            Week of {format(weekStart, "MMM d")} · {visibleTasks.length} scheduled
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
+            onClick={() => dispatch(setSelectedDate(new Date()))}
+            className="rounded-full border border-[#4a4a4f] bg-[#2d2d30] px-3 py-1.5 text-xs font-semibold text-[#e6e6e6]"
+          >
+            Today
+          </button>
+          <button
+            type="button"
             onClick={() => navigateDays("prev")}
-            className="h-9 w-9 rounded-full border border-[#315585] bg-[#112546] flex items-center justify-center text-[22px] cursor-pointer"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[#4a4a4f] bg-[#2d2d30] text-[22px]"
           >
             <RxCaretLeft />
           </button>
           <button
+            type="button"
             onClick={() => navigateDays("next")}
-            className="h-9 w-9 rounded-full border border-[#315585] bg-[#112546] flex items-center justify-center text-[22px] cursor-pointer"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[#4a4a4f] bg-[#2d2d30] text-[22px]"
           >
             <RxCaretRight />
           </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#2d4c77] bg-[#0f1f35]/70">
+      <div className="overflow-hidden rounded-2xl border border-[#3c3c3c] bg-[#1f1f22]">
         {renderHeader()}
-
         <div
           id="calendar-scroll-container"
           className={clsx(
@@ -205,6 +257,12 @@ const CalendarLarge = ({ tasks }) => {
           {renderGrid()}
         </div>
       </div>
+
+      {visibleTasks.length === 0 && (
+        <div className="pointer-events-none absolute inset-x-0 top-[76px] mx-auto w-fit rounded-xl border border-[#3c3c3c] bg-[#252526]/95 px-4 py-2 text-xs text-[#9da1a6]">
+          No posts scheduled in this range
+        </div>
+      )}
 
       <TaskPopup
         task={selectedTask}

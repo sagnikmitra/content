@@ -62,6 +62,7 @@ Use Supabase instead of MongoDB.
    - `server/supabase/schema.sql`
 3. Create a Storage bucket named `content-assets` (or set your own bucket name in env vars below).
 4. Optional Google Drive primary storage (recommended):
+   - `GOOGLE_DRIVE_ENABLED` (optional, set `false` to force Supabase uploads)
    - `GOOGLE_DRIVE_FOLDER_ID`
    - `GOOGLE_DRIVE_CLIENT_EMAIL`
    - `GOOGLE_DRIVE_PRIVATE_KEY` (preserve line breaks; escaped `\n` supported)
@@ -111,6 +112,7 @@ Set these Vercel environment variables before deploying:
 
 ### Local Dev (no backend URL env needed)
 
-- Start backend on `http://localhost:5000` (from `server/`)
+- Start backend on `http://localhost:5050` (from `server/`)
 - Start frontend with `npm run dev` (repo root)
 - Vite proxies `/auth` and `/content` to backend automatically
+- Optional override: set `VITE_DEV_API_URL` (e.g. `http://localhost:6000`)

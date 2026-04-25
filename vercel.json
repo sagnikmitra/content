@@ -15,11 +15,11 @@
   ],
   "routes": [
     {
-      "src": "/auth(?:/(.*))?$",
+      "src": "/auth/(.*)",
       "dest": "server/index.js"
     },
     {
-      "src": "/content(?:/(.*))?$",
+      "src": "/content/(.*)",
       "dest": "server/index.js"
     },
     {

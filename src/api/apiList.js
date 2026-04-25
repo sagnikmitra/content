@@ -1,6 +1,11 @@
 // Default: same-origin API (Vercel monolith / Vite proxy local).
 // Override with VITE_API_BASE_URL for split frontend/backend deploys (e.g. Framer).
-const RAW_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+const DEV_BASE_URL = import.meta.env.DEV
+  ? String(import.meta.env.VITE_DEV_API_URL || "").trim()
+  : "";
+const RAW_BASE_URL = String(
+  import.meta.env.VITE_API_BASE_URL || DEV_BASE_URL || ""
+).trim();
 export const BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 
 // list of all APIS

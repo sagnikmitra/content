@@ -77,29 +77,33 @@ const Calendar = ({ mode }) => {
   };
 
   const renderHeader = () => (
-    <div className="flex justify-between items-center font-outfit px-2 py-2 text-[#dbe8ff]">
-      <h2 className="text-lg font-semibold">
+    <div className="flex items-center justify-between px-2 py-2 font-outfit text-[#d4d4d4]">
+      <h2 className="text-base font-semibold">
         {format(selectedDate, "MMMM yyyy")}
       </h2>
 
       <div className="flex items-center gap-2">
-        <RxCaretLeft
-          onClick={prevMonth}
-          className="text-[20px] cursor-pointer"
-        />
-
-        <RxCaretRight
-          onClick={nextMonth}
-          className="text-[20px] cursor-pointer"
-        />
+        <button
+          type="button"
+          onClick={() => dispatch(setSelectedDate(new Date()))}
+          className="rounded-md border border-[#3c3c3c] bg-[#2d2d30] px-2 py-1 text-[11px] font-semibold text-[#d4d4d4]"
+        >
+          Today
+        </button>
+        <button type="button" onClick={prevMonth}>
+          <RxCaretLeft className="cursor-pointer text-[20px]" />
+        </button>
+        <button type="button" onClick={nextMonth}>
+          <RxCaretRight className="cursor-pointer text-[20px]" />
+        </button>
       </div>
     </div>
   );
 
   const renderDaysOfWeek = () => {
-    const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
+    const dayNames = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
     return (
-      <div className="grid grid-cols-7 text-[#bbd2f6] font-outfit mb-1 font-semibold text-center text-xs">
+      <div className="mb-1 grid grid-cols-7 text-center text-[11px] font-semibold text-[#9da1a6]">
         {dayNames.map((day) => (
           <div key={day} className="py-2">
             {day}
@@ -124,19 +128,19 @@ const Calendar = ({ mode }) => {
         <div
           key={day.toISOString()}
           onClick={() => handleDateClick(dateForCell)}
-          className="min-h-[30px] p-1 text-[12px] relative cursor-pointer flex items-center justify-center rounded-lg hover:bg-[#1d355a]"
+          className="relative flex min-h-[30px] cursor-pointer items-center justify-center rounded-lg p-1 text-[12px] hover:bg-[#2f2f34]"
         >
           {!isToday && isSelected && (
-            <div className="absolute w-6 h-6 rounded-full bg-[#004a77] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#4b4b52]" />
           )}
 
           {isToday && (
-            <div className="absolute w-6 h-6 rounded-full bg-[#a8c9fb] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#d4d4d4]" />
           )}
           <span
             className={clsx(
               "z-10",
-              isCurrentMonth ? "text-[#c6c6c6]" : "text-[#c6c6c6] opacity-50",
+              isCurrentMonth ? "text-[#d4d4d4]" : "text-[#d4d4d4] opacity-45",
               isToday && "text-black font-medium",
               !isToday && isSelected && "text-white font-medium"
             )}
@@ -153,7 +157,7 @@ const Calendar = ({ mode }) => {
   };
 
   return (
-    <div className="w-full max-w-md rounded-md overflow-hidden font-outfit mx-auto">
+    <div className="mx-auto w-full max-w-md overflow-hidden rounded-md font-outfit">
       {renderHeader()}
       {renderDaysOfWeek()}
       {renderCells()}

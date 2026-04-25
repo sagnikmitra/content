@@ -9,7 +9,7 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const { ensureAdminInitialized } = require("./bootstrap/adminUser");
 
-let port = process.env.PORT || 5000;
+let port = process.env.PORT || 5050;
 const app = express();
 ensureAdminInitialized().catch((error) => {
   console.error("Initial admin bootstrap failed:", error.message);
