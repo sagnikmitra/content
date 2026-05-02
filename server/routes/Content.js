@@ -151,6 +151,17 @@ const normalizeIsoTime = (timeValue) => {
   return parsed.toISOString();
 };
 
+const normalizeText = (value) => String(value || "").trim();
+
+const hasBodyContent = ({ description, instagram, twitter, linkedin, discord }) =>
+  [
+    description,
+    instagram,
+    twitter,
+    linkedin,
+    discord,
+  ].some((value) => normalizeText(value));
+
 const deletePicturesFromStorage = async (pictures) => {
   const normalized = normalizePictures(pictures);
   if (!normalized.length) {
@@ -318,10 +329,15 @@ router.post("/create", async (req, res) => {
       pictures,
     } = req.body || {};
 
-    if (!title || !description) {
-      return res
-        .status(400)
-        .json({ error: "Title and description are required" });
+    const normalizedTitle = normalizeText(title);
+    if (!normalizedTitle) {
+      return res.status(400).json({ error: "Title is required" });
+    }
+
+    if (!hasBodyContent({ description, instagram, twitter, linkedin, discord })) {
+      return res.status(400).json({
+        error: "Description or channel copy is required",
+      });
     }
 
     if (!time || !date) {
@@ -336,8 +352,8 @@ router.post("/create", async (req, res) => {
     }
 
     const payload = {
-      title,
-      description,
+      title: normalizedTitle,
+      description: normalizeText(description),
       type: type || "static",
       instagram: instagram || "",
       twitter: twitter || "",
@@ -438,10 +454,15 @@ router.put("/update/:id", async (req, res) => {
       pictures,
     } = req.body || {};
 
-    if (!title || !description) {
-      return res
-        .status(400)
-        .json({ error: "Title and description are required" });
+    const normalizedTitle = normalizeText(title);
+    if (!normalizedTitle) {
+      return res.status(400).json({ error: "Title is required" });
+    }
+
+    if (!hasBodyContent({ description, instagram, twitter, linkedin, discord })) {
+      return res.status(400).json({
+        error: "Description or channel copy is required",
+      });
     }
 
     if (!time || !date) {
@@ -485,8 +506,8 @@ router.put("/update/:id", async (req, res) => {
     }
 
     const payload = {
-      title,
-      description,
+      title: normalizedTitle,
+      description: normalizeText(description),
       instagram: instagram || "",
       twitter: twitter || "",
       linkedin: linkedin || "",

@@ -11,7 +11,11 @@ export const createContent = async (content) => {
   const response = await apiConnector("POST", ADD_CONTENT_API, content);
 
   if (response.status !== 201) {
-    throw new Error(JSON.stringify(response));
+    throw new Error(
+      response.data?.error ||
+        response.data?.message ||
+        "Failed to create content"
+    );
   }
 
   return response.data;
@@ -41,7 +45,11 @@ export const updateContent = async (content, id) => {
   const response = await apiConnector("PUT", `${UPDATE_CONTENT_API}/${id}`, content);
 
   if (response.status !== 200) {
-    throw new Error(response.data?.message || "Failed to update content");
+    throw new Error(
+      response.data?.error ||
+        response.data?.message ||
+        "Failed to update content"
+    );
   }
 
   return response.data;

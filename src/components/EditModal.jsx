@@ -2,9 +2,11 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import React, { useMemo, useState } from "react";
 import { RxCross2 } from "react-icons/rx";
+import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { updateContent } from "../api/queries";
 import { statusOptions } from "../constants/Constants";
+import { flipReRenderSwitch } from "../store/slices/globalSlice";
 import { formatDateKey, parseDateValue } from "../utils/date";
 import {
   normalizeExistingPictures,
@@ -26,6 +28,7 @@ const toTimeInput = (value) => {
 };
 
 const EditModal = ({ setIsOpen, content }) => {
+  const dispatch = useDispatch();
   const [activeView, setActiveView] = useState("instagram");
   const [title, setTitle] = useState(content.title || "");
   const [description, setDescription] = useState(content.description || "");
@@ -84,8 +87,16 @@ const EditModal = ({ setIsOpen, content }) => {
     setLoading(true);
 
     try {
-      if (!title.trim() || !description.trim()) {
-        throw new Error("Title and description are required");
+      if (!title.trim()) {
+        throw new Error("Title is required");
+      }
+
+      const hasPrimaryContent =
+        Boolean(description.trim()) ||
+        Object.values(editedContent).some((value) => String(value || "").trim());
+
+      if (!hasPrimaryContent) {
+        throw new Error("Description or channel copy is required");
       }
 
       if (!selectedDate || !selectedTime) {
@@ -118,6 +129,7 @@ const EditModal = ({ setIsOpen, content }) => {
       };
 
       await updateContent(payload, content._id);
+      dispatch(flipReRenderSwitch());
       toast.success("Content updated successfully!");
       setIsOpen(false);
     } catch (error) {
