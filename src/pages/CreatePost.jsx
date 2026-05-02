@@ -22,9 +22,12 @@ import {
   isBackdatedSchedule,
 } from "../utils/schedule";
 import {
+  cleanupUploadedPictures,
   normalizeExistingPictures,
   uploadPicturesToStorage,
 } from "../utils/supabaseStorage";
+
+const isStagedUpload = (image) => Boolean(image?.isStagedUpload);
 
 const CreatePost = ({ mode }) => {
   const navigate = useNavigate();
@@ -75,6 +78,8 @@ const CreatePost = ({ mode }) => {
   const [images, setImages] = useState(task?.pictures || []);
   const [activeContent, setActiveContent] = useState("instagram");
   const editorRef = useRef(null);
+  const skipStagedCleanupRef = useRef(false);
+  const stagedImagesRef = useRef([]);
   const hasPrimaryContent =
     Boolean((content.description || "").trim()) ||
     Boolean((content.instagram || "").trim()) ||
@@ -97,8 +102,49 @@ const CreatePost = ({ mode }) => {
     }
   }, [activeContent, content]);
 
+  useEffect(() => {
+    stagedImagesRef.current = (Array.isArray(images) ? images : []).filter(
+      isStagedUpload
+    );
+  }, [images]);
+
+  useEffect(
+    () => () => {
+      if (skipStagedCleanupRef.current || !stagedImagesRef.current.length) {
+        return;
+      }
+
+      cleanupUploadedPictures(stagedImagesRef.current).catch((error) => {
+        console.error("Failed to clean up abandoned staged uploads:", error);
+      });
+    },
+    []
+  );
+
+  const cleanupAndRemoveStagedUploads = async (pictures) => {
+    const stagedPictures = (Array.isArray(pictures) ? pictures : []).filter(
+      isStagedUpload
+    );
+    if (!stagedPictures.length) {
+      return;
+    }
+
+    await cleanupUploadedPictures(stagedPictures);
+    setImages((prev) => prev.filter((image) => !isStagedUpload(image)));
+  };
+
+  const handleDiscard = async () => {
+    await cleanupAndRemoveStagedUploads(stagedImagesRef.current);
+    skipStagedCleanupRef.current = true;
+    navigate("/");
+    dispatch(resetTask());
+  };
+
   const handleSave = async () => {
     setLoading(true);
+    let stagedPictures = [];
+    let uploadedPictures = [];
+    let contentWriteStarted = false;
 
     if (!content.title.trim()) {
       toast.error("Title is required.");
@@ -132,7 +178,10 @@ const CreatePost = ({ mode }) => {
       const newFiles = (Array.isArray(images) ? images : []).filter(
         (image) => !image?.id && !image?.path && image instanceof File
       );
-      const uploadedPictures = await uploadPicturesToStorage(newFiles);
+      stagedPictures = (Array.isArray(images) ? images : []).filter(
+        isStagedUpload
+      );
+      uploadedPictures = await uploadPicturesToStorage(newFiles);
       const pictures = [...existingPictures, ...uploadedPictures];
 
       const payload = {
@@ -148,6 +197,7 @@ const CreatePost = ({ mode }) => {
         pictures,
       };
 
+      contentWriteStarted = true;
       if (mode === "edit") {
         await updateContent(payload, task?._id);
         toast.success("Post updated successfully!");
@@ -156,9 +206,14 @@ const CreatePost = ({ mode }) => {
         toast.success("Post created successfully!");
       }
 
+      skipStagedCleanupRef.current = true;
       dispatch(resetTask());
       navigate("/");
     } catch (error) {
+      if (contentWriteStarted) {
+        await cleanupUploadedPictures([...stagedPictures, ...uploadedPictures]);
+        setImages((prev) => prev.filter((image) => !isStagedUpload(image)));
+      }
       console.error("Error saving post:", error);
       toast.error(
         error?.message ||
@@ -214,10 +269,7 @@ const CreatePost = ({ mode }) => {
 
               <button
                 className="justify-center rounded-xl border border-[#3c3c3c] px-6 py-3 text-[16px] font-semibold text-[#d4d4d4] cursor-pointer"
-                onClick={() => {
-                  navigate("/");
-                  dispatch(resetTask());
-                }}
+                onClick={handleDiscard}
               >
                 {mode === "edit" ? "Cancel" : "Discard"}
               </button>

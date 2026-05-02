@@ -6,6 +6,7 @@ import { MdDeleteOutline } from "react-icons/md";
 import { RxCross2, RxFile } from "react-icons/rx";
 import { toast } from "react-toastify";
 import {
+  cleanupUploadedPictures,
   resolvePictureDownloadUrl,
   uploadPicturesToStorage,
 } from "../../utils/supabaseStorage";
@@ -57,7 +58,11 @@ const FilePicker = ({ setIsOpen, images, setImages, mode, onUploadingChange }) =
     updateUploading(uniqueFiles.length);
     try {
       const uploaded = await uploadPicturesToStorage(uniqueFiles);
-      setImages((prevImages) => [...prevImages, ...uploaded]);
+      const stagedUploads = uploaded.map((picture) => ({
+        ...picture,
+        isStagedUpload: true,
+      }));
+      setImages((prevImages) => [...prevImages, ...stagedUploads]);
       toast.success(
         `${uploaded.length} file${uploaded.length > 1 ? "s" : ""} uploaded`
       );
@@ -72,6 +77,7 @@ const FilePicker = ({ setIsOpen, images, setImages, mode, onUploadingChange }) =
   };
 
   const handleRemoveImage = (index) => {
+    const removedImage = images?.[index];
     setImages((prev) => {
       const updatedImages = prev.filter((_, i) => i !== index);
 
@@ -81,6 +87,12 @@ const FilePicker = ({ setIsOpen, images, setImages, mode, onUploadingChange }) =
 
       return updatedImages;
     });
+
+    if (removedImage?.isStagedUpload) {
+      cleanupUploadedPictures([removedImage]).catch((error) => {
+        console.error("Failed to clean up removed staged upload:", error);
+      });
+    }
   };
 
   const triggerDownload = (image) => {

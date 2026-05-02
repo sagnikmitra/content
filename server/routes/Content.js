@@ -11,6 +11,7 @@ const { authenticateRequest } = require("../middleware/authenticateRequest");
 const router = express.Router();
 const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "content-assets";
 const SCHEDULE_GRACE_MS = 60 * 1000;
+const VALID_CONTENT_TYPES = new Set(["static", "video", "live"]);
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -157,6 +158,11 @@ const isBackdatedSchedule = (isoTimeValue, now = Date.now()) =>
 
 const normalizeText = (value) => String(value || "").trim();
 
+const normalizeContentType = (value) => {
+  const normalized = normalizeText(value || "static").toLowerCase();
+  return VALID_CONTENT_TYPES.has(normalized) ? normalized : null;
+};
+
 const hasBodyContent = ({ description, instagram, twitter, linkedin, discord }) =>
   [
     description,
@@ -189,17 +195,39 @@ const deletePicturesFromStorage = async (pictures) => {
     supabasePaths.push(path);
   }
 
-  if (gdriveIds.length > 0 && isGoogleDriveConfigured()) {
-    await deleteFilesFromGoogleDrive(gdriveIds);
+  const cleanupErrors = [];
+
+  if (gdriveIds.length > 0) {
+    if (!isGoogleDriveConfigured()) {
+      cleanupErrors.push(
+        new Error("Google Drive is not configured; cannot delete Drive files")
+      );
+    } else {
+      try {
+        await deleteFilesFromGoogleDrive(gdriveIds);
+      } catch (error) {
+        cleanupErrors.push(error);
+      }
+    }
   }
 
   if (supabasePaths.length > 0) {
-    const { error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .remove([...new Set(supabasePaths)]);
-    if (error) {
-      throw error;
+    try {
+      const { error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .remove([...new Set(supabasePaths)]);
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      cleanupErrors.push(error);
     }
+  }
+
+  if (cleanupErrors.length > 0) {
+    const error = new Error("Failed to delete one or more stored files");
+    error.causes = cleanupErrors;
+    throw error;
   }
 };
 
@@ -214,28 +242,39 @@ const createStoragePath = (filename) => {
 const uploadFilesToSupabase = async (files = []) => {
   const uploaded = [];
 
-  for (const file of files) {
-    const path = createStoragePath(file.originalname || "asset");
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, file.buffer, {
-        upsert: false,
-        contentType: file.mimetype || "application/octet-stream",
+  try {
+    for (const file of files) {
+      const path = createStoragePath(file.originalname || "asset");
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(path, file.buffer, {
+          upsert: false,
+          contentType: file.mimetype || "application/octet-stream",
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      uploaded.push({
+        id: path,
+        path,
+        provider: "supabase",
+        url: data?.publicUrl || "",
+        filename: file.originalname || path.split("/").pop() || "file",
+        mimeType: file.mimetype || "application/octet-stream",
       });
-
-    if (uploadError) {
-      throw uploadError;
     }
-
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    uploaded.push({
-      id: path,
-      path,
-      provider: "supabase",
-      url: data?.publicUrl || "",
-      filename: file.originalname || path.split("/").pop() || "file",
-      mimeType: file.mimetype || "application/octet-stream",
-    });
+  } catch (error) {
+    if (uploaded.length > 0) {
+      try {
+        await deletePicturesFromStorage(uploaded);
+      } catch (cleanupError) {
+        console.error("Error cleaning up partial Supabase uploads:", cleanupError);
+      }
+    }
+    throw error;
   }
 
   return uploaded;
@@ -361,10 +400,15 @@ router.post("/create", async (req, res) => {
       });
     }
 
+    const normalizedType = normalizeContentType(type);
+    if (!normalizedType) {
+      return res.status(400).json({ error: "Invalid content type" });
+    }
+
     const payload = {
       title: normalizedTitle,
       description: normalizeText(description),
-      type: type || "static",
+      type: normalizedType,
       instagram: instagram || "",
       twitter: twitter || "",
       linkedin: linkedin || "",
@@ -517,8 +561,9 @@ router.put("/update/:id", async (req, res) => {
         !updatedPictures.some((updated) => updated.id === current.id)
     );
 
-    if (imagesToDelete.length > 0) {
-      await deletePicturesFromStorage(imagesToDelete);
+    const normalizedType = normalizeContentType(type);
+    if (!normalizedType) {
+      return res.status(400).json({ error: "Invalid content type" });
     }
 
     const payload = {
@@ -531,7 +576,7 @@ router.put("/update/:id", async (req, res) => {
       pictures: updatedPictures,
       time: normalizedTime,
       date: normalizedDate,
-      type: type || "static",
+      type: normalizedType,
     };
 
     const { data: updated, error: updateError } = await supabase
@@ -543,6 +588,14 @@ router.put("/update/:id", async (req, res) => {
 
     if (updateError) {
       throw updateError;
+    }
+
+    if (imagesToDelete.length > 0) {
+      try {
+        await deletePicturesFromStorage(imagesToDelete);
+      } catch (cleanupError) {
+        console.error("Error cleaning up removed images after update:", cleanupError);
+      }
     }
 
     return res.status(200).json({
@@ -573,9 +626,7 @@ router.delete("/delete/:id", async (req, res) => {
       return res.status(404).json({ error: "Content not found" });
     }
 
-    if (normalizePictures(content.pictures).length > 0) {
-      await deletePicturesFromStorage(content.pictures);
-    }
+    const picturesToDelete = normalizePictures(content.pictures);
 
     const { error: deleteError } = await supabase
       .from("content_items")
@@ -584,6 +635,14 @@ router.delete("/delete/:id", async (req, res) => {
 
     if (deleteError) {
       throw deleteError;
+    }
+
+    if (picturesToDelete.length > 0) {
+      try {
+        await deletePicturesFromStorage(picturesToDelete);
+      } catch (cleanupError) {
+        console.error("Error cleaning up images after content delete:", cleanupError);
+      }
     }
 
     return res.status(200).json({ message: "Task deleted successfully!" });

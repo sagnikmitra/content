@@ -13,6 +13,7 @@ import {
   isBackdatedSchedule,
 } from "../utils/schedule";
 import {
+  cleanupUploadedPictures,
   normalizeExistingPictures,
   uploadPicturesToStorage,
 } from "../utils/supabaseStorage";
@@ -89,6 +90,8 @@ const EditModal = ({ setIsOpen, content }) => {
 
   const handleSave = async () => {
     setLoading(true);
+    let uploadedPictures = [];
+    let contentWriteStarted = false;
 
     try {
       if (!title.trim()) {
@@ -123,7 +126,7 @@ const EditModal = ({ setIsOpen, content }) => {
       const newFiles = images.filter(
         (image) => !image?.id && !image?.path && image instanceof File
       );
-      const uploadedPictures = await uploadPicturesToStorage(newFiles);
+      uploadedPictures = await uploadPicturesToStorage(newFiles);
       const pictures = [...existingPictures, ...uploadedPictures];
 
       const payload = {
@@ -139,11 +142,15 @@ const EditModal = ({ setIsOpen, content }) => {
         pictures,
       };
 
+      contentWriteStarted = true;
       await updateContent(payload, content._id);
       dispatch(flipReRenderSwitch());
       toast.success("Content updated successfully!");
       setIsOpen(false);
     } catch (error) {
+      if (contentWriteStarted && uploadedPictures.length) {
+        await cleanupUploadedPictures(uploadedPictures);
+      }
       toast.error(error?.message || "Failed to update content.");
     } finally {
       setLoading(false);

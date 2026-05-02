@@ -68,8 +68,15 @@ const deleteUploadedPicture = async (picture) => {
   }
 };
 
-const deleteUploadedPictures = async (pictures = []) => {
-  await Promise.allSettled(pictures.map((picture) => deleteUploadedPicture(picture)));
+export const cleanupUploadedPictures = async (pictures = []) => {
+  const normalized = normalizeExistingPictures(pictures);
+  if (!normalized.length) {
+    return [];
+  }
+
+  return Promise.allSettled(
+    normalized.map((picture) => deleteUploadedPicture(picture))
+  );
 };
 
 export const resolvePictureDownloadUrl = (picture) => {
@@ -109,7 +116,7 @@ export const uploadPicturesToStorage = async (files = []) => {
     }
   } catch (error) {
     if (uploaded.length > 0) {
-      await deleteUploadedPictures(uploaded);
+      await cleanupUploadedPictures(uploaded);
     }
     throw error;
   }

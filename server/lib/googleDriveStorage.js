@@ -103,9 +103,32 @@ const makeDownloadUrl = (fileId) =>
   `https://drive.google.com/uc?export=download&id=${fileId}`;
 
 const mapDriveUploadError = (error, authMode) => {
-  const apiError = error?.response?.data?.error;
+  const responseError = error?.response?.data?.error;
+  const apiError =
+    responseError && typeof responseError === "object" ? responseError : {};
+  const errorCode =
+    typeof responseError === "string"
+      ? responseError
+      : apiError?.status || apiError?.code || error?.code;
+  const errorMessage = String(
+    error?.response?.data?.error_description ||
+      apiError?.message ||
+      error?.message ||
+      ""
+  );
   const reasons = Array.isArray(apiError?.errors) ? apiError.errors : [];
   const reasonSet = new Set(reasons.map((item) => item?.reason).filter(Boolean));
+
+  if (
+    ["invalid_grant", "invalid_token", "unauthorized_client"].includes(errorCode) ||
+    /invalid.*(grant|token)|expired.*token/i.test(errorMessage)
+  ) {
+    return {
+      statusCode: 401,
+      message:
+        "Google Drive OAuth token is invalid or expired. Regenerate GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN with the configured OAuth client.",
+    };
+  }
 
   if (reasonSet.has("storageQuotaExceeded")) {
     const message =
