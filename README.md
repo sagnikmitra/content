@@ -64,9 +64,11 @@ Use Supabase instead of MongoDB.
 4. Optional Google Drive primary storage (recommended):
    - `GOOGLE_DRIVE_ENABLED` (optional, set `false` to force Supabase uploads)
    - `GOOGLE_DRIVE_FOLDER_ID`
-   - `GOOGLE_DRIVE_CLIENT_EMAIL`
-   - `GOOGLE_DRIVE_PRIVATE_KEY` (preserve line breaks; escaped `\n` supported)
-   - Or single JSON var: `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON`
+   - For a normal My Drive folder: set `GOOGLE_DRIVE_OAUTH_CLIENT_ID`, `GOOGLE_DRIVE_OAUTH_CLIENT_SECRET`, and `GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN`
+   - For a Shared Drive folder: set `GOOGLE_DRIVE_CLIENT_EMAIL` and `GOOGLE_DRIVE_PRIVATE_KEY` (preserve line breaks; escaped `\n` supported)
+   - Or single service-account JSON var: `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON`
+   - OAuth credentials are preferred when both OAuth and service-account credentials exist.
+   - To generate the refresh token, set the OAuth client ID/secret first, then run `node server/scripts/googleDriveOAuthToken.js`.
 5. Storage behavior:
    - If Google Drive env vars exist, uploads go to Drive and download links are generated from Drive IDs.
    - If missing, system falls back to Supabase Storage bucket.
@@ -96,6 +98,10 @@ Set these Vercel environment variables before deploying:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STORAGE_BUCKET` (optional, defaults to `content-assets`)
 - `GOOGLE_DRIVE_FOLDER_ID` (optional, enables Drive uploads when set with creds)
+- `GOOGLE_DRIVE_OAUTH_CLIENT_ID` (optional, preferred for normal My Drive folders)
+- `GOOGLE_DRIVE_OAUTH_CLIENT_SECRET` (optional, preferred for normal My Drive folders)
+- `GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN` (optional, preferred for normal My Drive folders)
+- `GOOGLE_DRIVE_OAUTH_REDIRECT_URI` (optional, defaults to `http://localhost`)
 - `GOOGLE_DRIVE_CLIENT_EMAIL` (optional)
 - `GOOGLE_DRIVE_PRIVATE_KEY` (optional)
 - `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON` (optional alternative to email/key)

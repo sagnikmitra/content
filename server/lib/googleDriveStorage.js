@@ -2,10 +2,11 @@ const { Readable } = require("stream");
 const { google } = require("googleapis");
 
 const DRIVE_SCOPE = ["https://www.googleapis.com/auth/drive"];
+const DEFAULT_OAUTH_REDIRECT_URI = "http://localhost";
 
 const normalizePrivateKey = (value = "") => value.replace(/\\n/g, "\n");
 
-const readCredentials = () => {
+const readServiceAccountCredentials = () => {
   const rawJson = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON;
   if (rawJson) {
     try {
@@ -25,12 +26,35 @@ const readCredentials = () => {
   };
 };
 
+const readOAuthCredentials = () => ({
+  clientId: String(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_ID || "").trim(),
+  clientSecret: String(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_SECRET || "").trim(),
+  refreshToken: String(process.env.GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN || "").trim(),
+  redirectUri: String(
+    process.env.GOOGLE_DRIVE_OAUTH_REDIRECT_URI || DEFAULT_OAUTH_REDIRECT_URI
+  ).trim(),
+});
+
+const isOAuthConfigured = (credentials = readOAuthCredentials()) =>
+  Boolean(credentials.clientId && credentials.clientSecret && credentials.refreshToken);
+
 const getDriveConfig = () => {
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  const { clientEmail, privateKey } = readCredentials();
+  const oauth = readOAuthCredentials();
+
+  if (isOAuthConfigured(oauth)) {
+    return {
+      folderId: String(folderId || "").trim(),
+      authMode: "oauth",
+      oauth,
+    };
+  }
+
+  const { clientEmail, privateKey } = readServiceAccountCredentials();
 
   return {
     folderId: String(folderId || "").trim(),
+    authMode: "service_account",
     clientEmail: String(clientEmail || "").trim(),
     privateKey: normalizePrivateKey(String(privateKey || "").trim()),
   };
@@ -46,12 +70,31 @@ const isGoogleDriveConfigured = () => {
     return false;
   }
 
-  const { folderId, clientEmail, privateKey } = getDriveConfig();
-  return Boolean(folderId && clientEmail && privateKey);
+  const config = getDriveConfig();
+  if (!config.folderId) {
+    return false;
+  }
+
+  if (config.authMode === "oauth") {
+    return isOAuthConfigured(config.oauth);
+  }
+
+  return Boolean(config.clientEmail && config.privateKey);
 };
 
 const createDriveClient = () => {
-  const { clientEmail, privateKey } = getDriveConfig();
+  const config = getDriveConfig();
+  if (config.authMode === "oauth") {
+    const oauthClient = new google.auth.OAuth2(
+      config.oauth.clientId,
+      config.oauth.clientSecret,
+      config.oauth.redirectUri
+    );
+    oauthClient.setCredentials({ refresh_token: config.oauth.refreshToken });
+    return google.drive({ version: "v3", auth: oauthClient });
+  }
+
+  const { clientEmail, privateKey } = config;
   const jwt = new google.auth.JWT(clientEmail, null, privateKey, DRIVE_SCOPE);
   return google.drive({ version: "v3", auth: jwt });
 };
@@ -59,17 +102,21 @@ const createDriveClient = () => {
 const makeDownloadUrl = (fileId) =>
   `https://drive.google.com/uc?export=download&id=${fileId}`;
 
-const mapDriveUploadError = (error) => {
+const mapDriveUploadError = (error, authMode) => {
   const apiError = error?.response?.data?.error;
   const reasons = Array.isArray(apiError?.errors) ? apiError.errors : [];
   const reasonSet = new Set(reasons.map((item) => item?.reason).filter(Boolean));
 
   if (reasonSet.has("storageQuotaExceeded")) {
+    const message =
+      authMode === "oauth"
+        ? "Google Drive upload failed: the authenticated Google account has no available Drive storage."
+        : "Google Drive upload failed: service-account uploads to My Drive need service-account storage quota. Use OAuth user credentials for a My Drive folder, or move the target folder into a Shared Drive.";
+
     return {
       statusCode: 400,
       fallbackToSupabase: true,
-      message:
-        "Google Drive upload failed: service account storage quota exceeded. Use a Shared Drive folder (recommended) or OAuth user credentials.",
+      message,
     };
   }
 
@@ -108,7 +155,7 @@ const uploadFilesToGoogleDrive = async (files = []) => {
     return [];
   }
 
-  const { folderId } = getDriveConfig();
+  const { folderId, authMode } = getDriveConfig();
   const drive = createDriveClient();
   const uploaded = [];
   const createdFiles = [];
@@ -150,7 +197,7 @@ const uploadFilesToGoogleDrive = async (files = []) => {
       uploaded.push(uploadedFile);
     }
   } catch (error) {
-    const mapped = mapDriveUploadError(error);
+    const mapped = mapDriveUploadError(error, authMode);
     const enhanced = new Error(mapped.message);
     enhanced.statusCode = mapped.statusCode;
     enhanced.fallbackToSupabase = Boolean(mapped.fallbackToSupabase);
