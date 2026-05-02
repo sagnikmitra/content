@@ -23,7 +23,7 @@ import { parseDateValue } from "../../utils/date";
 
 const Calendar = ({ mode }) => {
   const task = useSelector(selectTask);
-  const globalSelectedDate = useSelector(selectSelectedDate);
+  const globalSelectedDate = parseDateValue(useSelector(selectSelectedDate));
   const selectedDate =
     mode === "view" || mode === "create"
       ? globalSelectedDate

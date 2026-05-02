@@ -54,6 +54,7 @@ skills-lock.json
 
 # Build/test artifacts
 coverage/
+.playwright-mcp/
 *.tsbuildinfo
 
 # OS noise

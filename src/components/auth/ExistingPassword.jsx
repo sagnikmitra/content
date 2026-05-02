@@ -90,7 +90,7 @@ export default function ExistingPassword({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-[#9da1a6]">
-            ContentOS by sgnk
+            Markex by ZS
           </p>
           <h2 className="mt-1 text-2xl font-semibold">Welcome back</h2>
           <p className="mt-1 text-sm text-[#a5a7ab]">

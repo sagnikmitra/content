@@ -26,7 +26,7 @@ const CreatePost = ({ mode }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const task = useSelector((state) => state.task.task);
-  const globallySelectedDate = useSelector(selectSelectedDate);
+  const globallySelectedDate = parseDateValue(useSelector(selectSelectedDate));
   const selectedDate =
     mode === "edit" ? parseDateValue(task.date) : globallySelectedDate;
 

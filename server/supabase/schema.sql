@@ -1,4 +1,4 @@
--- ContentOS base schema for Supabase
+-- Markex base schema for Supabase
 create extension if not exists pgcrypto;
 
 create table if not exists public.app_users (

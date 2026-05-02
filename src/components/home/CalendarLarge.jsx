@@ -25,7 +25,7 @@ const ROW_HEIGHT = 50;
 
 const CalendarLarge = ({ tasks }) => {
   const dispatch = useDispatch();
-  const selectedDate = useSelector(selectSelectedDate);
+  const selectedDate = parseDateValue(useSelector(selectSelectedDate));
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedTask, setSelectedTask] = useState(null);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });

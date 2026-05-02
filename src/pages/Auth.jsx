@@ -55,7 +55,7 @@ export default function AuthPage() {
             <HeaderLogo />
             <p className="mt-5 max-w-xl text-sm leading-6 text-[#c7c7c7] md:text-base">
               Plan, write, and ship campaign content from one workspace.
-              ContentOS keeps team timelines, drafts, and assets aligned.
+              Markex keeps team timelines, drafts, and assets aligned.
             </p>
             <div className="mt-7 grid gap-3 text-sm text-[#d4d4d4]">
               <div className="auth-point">

@@ -1,5 +1,5 @@
 {
-  "name": "contentos",
+  "name": "markex-by-zs",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -25,7 +25,9 @@
     "cors": "^2.8.6",
     "date-fns": "^4.1.0",
     "express": "^5.2.1",
+    "googleapis": "^146.0.0",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2",
     "path": "^0.12.7",
     "react": "^19.0.0",
     "react-calendar": "^5.1.0",

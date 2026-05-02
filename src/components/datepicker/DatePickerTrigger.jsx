@@ -10,7 +10,7 @@ import DatePicker from "./DatePicker";
 
 const DatePickerTrigger = ({ mode }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedDate = useSelector(selectSelectedDate);
+  const selectedDate = parseDateValue(useSelector(selectSelectedDate));
   const task = useSelector(selectTask);
   const wrapperRef = useRef();
 

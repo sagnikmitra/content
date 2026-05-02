@@ -64,14 +64,18 @@ export const apiConnector = async (method, url, bodyData, headers, params) => {
     const timeoutHint = timedOut
       ? `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s.${setupHint}`
       : "";
+    const rawMessage = String(error?.message || "");
+    const networkFailureMessage =
+      `Network request failed. Check backend availability and API base URL.${setupHint}`;
 
     return {
       status: 0,
       data: {
         message:
           timeoutHint ||
-          error?.message ||
-          `Network request failed. Check backend availability and API base URL.${setupHint}`,
+          (rawMessage && rawMessage !== "Network Error"
+            ? rawMessage
+            : networkFailureMessage),
       },
     };
   }

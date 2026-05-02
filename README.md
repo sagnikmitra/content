@@ -1,4 +1,4 @@
-# ContentOS by sgnk
+# Markex by ZS
 
 A lightweight, mobile-first planner to align **content**, **marketing**, and **admin** teams on _what to post, when, and with which assets_. Think “Google Calendar for social posts,” built in-house to keep timelines, copy, and media in one place.
 
@@ -53,11 +53,11 @@ npm run dev
 npm run build && npm run preview
 ```
 
-## Supabase Setup (ContentOS)
+## Supabase Setup (Markex)
 
 Use Supabase instead of MongoDB.
 
-1. Create a Supabase project named `ContentOS`.
+1. Create a Supabase project named `Markex`.
 2. Open SQL Editor and run:
    - `server/supabase/schema.sql`
 3. Create a Storage bucket named `content-assets` (or set your own bucket name in env vars below).

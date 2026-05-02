@@ -74,7 +74,7 @@ const LeftSidebar = () => {
     <div className="hidden lg:flex w-[280px] flex-col gap-4 min-h-[calc(100vh-2rem)]">
       <div className="glass-panel rounded-2xl px-4 py-4">
         <p className="text-xs uppercase tracking-[0.18em] text-[#9da1a6]">Workspace</p>
-        <h2 className="mt-1 text-2xl font-semibold">ContentOS</h2>
+        <h2 className="mt-1 text-2xl font-semibold">Markex</h2>
         <p className="mt-1 text-xs text-[#9da1a6]">Marketing planning cockpit</p>
       </div>
 

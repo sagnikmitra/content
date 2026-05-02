@@ -17,7 +17,7 @@ export default function FooterLinks() {
       >
         Privacy Policy
       </Link>
-      <div className="mt-2">© {new Date().getFullYear()} ContentOS by sgnk</div>
+      <div className="mt-2">© {new Date().getFullYear()} Markex by ZS</div>
     </div>
   );
 }
