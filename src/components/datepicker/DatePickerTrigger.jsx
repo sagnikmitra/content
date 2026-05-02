@@ -8,11 +8,16 @@ import { selectTask } from "../../store/slices/taskSlice";
 import { parseDateValue } from "../../utils/date";
 import DatePicker from "./DatePicker";
 
-const DatePickerTrigger = ({ mode }) => {
+const DatePickerTrigger = ({ mode, selectedDate: controlledDate, setSelectedDate }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedDate = parseDateValue(useSelector(selectSelectedDate));
+  const globalSelectedDate = parseDateValue(useSelector(selectSelectedDate));
   const task = useSelector(selectTask);
   const wrapperRef = useRef();
+  const selectedDate = controlledDate
+    ? parseDateValue(controlledDate)
+    : globalSelectedDate;
+  const displayDate =
+    controlledDate || mode !== "edit" ? selectedDate : parseDateValue(task?.date);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -43,12 +48,7 @@ const DatePickerTrigger = ({ mode }) => {
         )}
       >
         <span>
-          {format(
-            mode === "view" || mode === "create"
-              ? selectedDate
-              : parseDateValue(task?.date),
-            "EEEE, MMMM d"
-          )}
+          {format(displayDate, "EEEE, MMMM d")}
         </span>
         {mode !== "view" && (
           <RxCaretDown
@@ -59,7 +59,13 @@ const DatePickerTrigger = ({ mode }) => {
         )}
       </button>
 
-      <DatePicker open={isOpen} onClose={() => setIsOpen(false)} mode={mode} />
+      <DatePicker
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        mode={mode}
+        selectedDate={selectedDate}
+        onDateSelect={setSelectedDate}
+      />
     </div>
   );
 };

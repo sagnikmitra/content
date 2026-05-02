@@ -1,5 +1,6 @@
 import { format, isEqual, setHours, setMinutes } from "date-fns";
 import React, { useEffect, useRef, useState } from "react";
+import { isBackdatedSchedule } from "../../utils/schedule";
 
 const generateTimeSlots = (interval = 30) => {
   const slots = [];
@@ -11,7 +12,7 @@ const generateTimeSlots = (interval = 30) => {
   return slots;
 };
 
-const TimePicker = ({ open, onClose, onSelect, selected }) => {
+const TimePicker = ({ open, onClose, onSelect, selected, selectedDate }) => {
   const wrapperRef = useRef();
   const selectedRef = useRef(null);
   const [search, setSearch] = useState("");
@@ -61,6 +62,8 @@ const TimePicker = ({ open, onClose, onSelect, selected }) => {
 
       {filteredSlots.map(({ hours, minutes }, i) => {
         const time = setMinutes(setHours(new Date(), hours), minutes);
+        const isDisabledPast =
+          selectedDate && isBackdatedSchedule(selectedDate, time);
         const isSelected =
           selected &&
           isEqual(
@@ -76,12 +79,18 @@ const TimePicker = ({ open, onClose, onSelect, selected }) => {
             key={i}
             ref={isSelected ? selectedRef : null}
             onClick={() => {
+              if (isDisabledPast) {
+                return;
+              }
+
               onSelect(time);
               onClose();
             }}
-            className={`text-[#dfdede] text-sm px-3 py-2 hover:bg-[#3a3a3f] hover:text-white rounded cursor-pointer ${
-              isSelected ? "bg-[#3a3a3f] text-white font-medium" : ""
-            }`}
+            className={`text-sm px-3 py-2 rounded ${
+              isDisabledPast
+                ? "cursor-not-allowed text-[#777] opacity-50"
+                : "cursor-pointer text-[#dfdede] hover:bg-[#3a3a3f] hover:text-white"
+            } ${isSelected ? "bg-[#3a3a3f] text-white font-medium" : ""}`}
           >
             {format(time, "h:mm a")}
           </div>

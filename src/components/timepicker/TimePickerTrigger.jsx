@@ -4,7 +4,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { RxCaretDown } from "react-icons/rx";
 import TimePicker from "./TimePicker";
 
-const TimePickerTrigger = ({ selectedTime, setSelectedTime, mode }) => {
+const TimePickerTrigger = ({
+  selectedTime,
+  setSelectedTime,
+  selectedDate,
+  mode,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef();
 
@@ -52,6 +57,7 @@ const TimePickerTrigger = ({ selectedTime, setSelectedTime, mode }) => {
         onClose={() => setIsOpen(false)}
         onSelect={(time) => setSelectedTime(time)}
         selected={selectedTime}
+        selectedDate={selectedDate}
       />
     </div>
   );

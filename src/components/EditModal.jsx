@@ -9,6 +9,10 @@ import { statusOptions } from "../constants/Constants";
 import { flipReRenderSwitch } from "../store/slices/globalSlice";
 import { formatDateKey, parseDateValue } from "../utils/date";
 import {
+  combineDateAndTime,
+  isBackdatedSchedule,
+} from "../utils/schedule";
+import {
   normalizeExistingPictures,
   uploadPicturesToStorage,
 } from "../utils/supabaseStorage";
@@ -103,9 +107,16 @@ const EditModal = ({ setIsOpen, content }) => {
         throw new Error("Date and time are required");
       }
 
-      const timeValue = new Date(`${selectedDate}T${selectedTime}:00`);
+      const timeValue = combineDateAndTime(
+        selectedDate,
+        new Date(`${selectedDate}T${selectedTime}:00`)
+      );
       if (Number.isNaN(timeValue.getTime())) {
         throw new Error("Invalid date/time");
+      }
+
+      if (isBackdatedSchedule(selectedDate, timeValue)) {
+        throw new Error("Schedule date and time cannot be in the past.");
       }
 
       const existingPictures = normalizeExistingPictures(images);
@@ -227,6 +238,7 @@ const EditModal = ({ setIsOpen, content }) => {
             <span className="text-xs text-[#9da1a6]">Date</span>
             <input
               type="date"
+              min={formatDateKey(new Date())}
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-2 text-[#d4d4d4]"

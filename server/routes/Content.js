@@ -10,6 +10,7 @@ const { authenticateRequest } = require("../middleware/authenticateRequest");
 
 const router = express.Router();
 const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "content-assets";
+const SCHEDULE_GRACE_MS = 60 * 1000;
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -150,6 +151,9 @@ const normalizeIsoTime = (timeValue) => {
 
   return parsed.toISOString();
 };
+
+const isBackdatedSchedule = (isoTimeValue, now = Date.now()) =>
+  new Date(isoTimeValue).getTime() < now - SCHEDULE_GRACE_MS;
 
 const normalizeText = (value) => String(value || "").trim();
 
@@ -351,6 +355,12 @@ router.post("/create", async (req, res) => {
       return res.status(400).json({ error: "Invalid date or time format" });
     }
 
+    if (isBackdatedSchedule(normalizedTime)) {
+      return res.status(400).json({
+        error: "Schedule date and time cannot be in the past",
+      });
+    }
+
     const payload = {
       title: normalizedTitle,
       description: normalizeText(description),
@@ -474,6 +484,12 @@ router.put("/update/:id", async (req, res) => {
 
     if (!normalizedDate || !normalizedTime) {
       return res.status(400).json({ error: "Invalid date or time format" });
+    }
+
+    if (isBackdatedSchedule(normalizedTime)) {
+      return res.status(400).json({
+        error: "Schedule date and time cannot be in the past",
+      });
     }
 
     const { data: existingContent, error: existingError } = await supabase

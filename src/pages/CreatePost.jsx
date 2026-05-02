@@ -18,6 +18,10 @@ import { selectSelectedDate } from "../store/slices/globalSlice";
 import { resetTask } from "../store/slices/taskSlice";
 import { formatDateKey, parseDateValue } from "../utils/date";
 import {
+  combineDateAndTime,
+  isBackdatedSchedule,
+} from "../utils/schedule";
+import {
   normalizeExistingPictures,
   uploadPicturesToStorage,
 } from "../utils/supabaseStorage";
@@ -27,14 +31,21 @@ const CreatePost = ({ mode }) => {
   const dispatch = useDispatch();
   const task = useSelector((state) => state.task.task);
   const globallySelectedDate = parseDateValue(useSelector(selectSelectedDate));
-  const selectedDate =
-    mode === "edit" ? parseDateValue(task.date) : globallySelectedDate;
+  const [selectedDate, setSelectedDate] = useState(
+    mode === "edit" ? parseDateValue(task.date) : globallySelectedDate
+  );
 
   useEffect(() => {
     if (task?.id === 0 && mode === "edit") {
       navigate("/");
     }
   }, [mode, navigate, task?.id]);
+
+  useEffect(() => {
+    setSelectedDate(
+      mode === "edit" ? parseDateValue(task.date) : globallySelectedDate
+    );
+  }, [globallySelectedDate, mode, task.date]);
 
   const [loading, setLoading] = useState(false);
   const [openAssetsModal, setOpenAssetsModal] = useState(false);
@@ -108,12 +119,14 @@ const CreatePost = ({ mode }) => {
     }
 
     try {
-      const currentDate = parseDateValue(selectedDate);
-      const dateValue = formatDateKey(currentDate);
-      const timeValue =
-        selectedTime instanceof Date
-          ? selectedTime.toISOString()
-          : new Date(selectedTime).toISOString();
+      if (isBackdatedSchedule(selectedDate, selectedTime)) {
+        toast.error("Schedule date and time cannot be in the past.");
+        return;
+      }
+
+      const scheduledAt = combineDateAndTime(selectedDate, selectedTime);
+      const dateValue = formatDateKey(selectedDate);
+      const timeValue = scheduledAt.toISOString();
 
       const existingPictures = normalizeExistingPictures(images);
       const newFiles = (Array.isArray(images) ? images : []).filter(
@@ -212,10 +225,15 @@ const CreatePost = ({ mode }) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <DatePickerTrigger mode={mode} />
+            <DatePickerTrigger
+              mode={mode}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+            />
             <TimePickerTrigger
               selectedTime={selectedTime}
               setSelectedTime={setSelectedTime}
+              selectedDate={selectedDate}
             />
             <StatusDropdownTrigger
               selectedStatus={selectedStatus}
