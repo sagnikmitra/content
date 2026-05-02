@@ -1,6 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import dotenv from "dotenv";
+import { createRequire } from "module";
 import path from "path";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
@@ -10,14 +11,37 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEV_API_TARGET = process.env.VITE_DEV_API_URL || "http://localhost:5050";
+const USE_DEV_API_PROXY =
+  String(process.env.VITE_USE_DEV_API_URL || "").toLowerCase() === "true";
+const require = createRequire(import.meta.url);
+
+const localExpressApi = () => ({
+  name: "local-express-api",
+  configureServer(server) {
+    const app = require("./server/index.js");
+    server.middlewares.use((req, res, next) => {
+      const requestUrl = req.url || "";
+      if (requestUrl.startsWith("/auth") || requestUrl.startsWith("/content")) {
+        app(req, res, next);
+        return;
+      }
+
+      next();
+    });
+  },
+});
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), !USE_DEV_API_PROXY && localExpressApi()],
   server: {
-    proxy: {
-      "/auth/": DEV_API_TARGET,
-      "/content/": DEV_API_TARGET,
-    },
+    ...(USE_DEV_API_PROXY
+      ? {
+          proxy: {
+            "/auth/": DEV_API_TARGET,
+            "/content/": DEV_API_TARGET,
+          },
+        }
+      : {}),
   },
   resolve: {
     alias: {

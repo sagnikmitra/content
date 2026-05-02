@@ -1,6 +1,10 @@
-// Default: same-origin API (Vercel monolith / Vite proxy local).
-// Override with VITE_API_BASE_URL for split frontend/backend deploys (e.g. Framer).
-const DEV_BASE_URL = import.meta.env.DEV
+// Default: same-origin API. In local Vite dev, Express routes are mounted into
+// Vite so `/auth` and `/content` work without a separate backend process.
+// Set VITE_USE_DEV_API_URL=true to force a split local API target.
+const USE_DEV_API_URL =
+  import.meta.env.DEV &&
+  String(import.meta.env.VITE_USE_DEV_API_URL || "").toLowerCase() === "true";
+const DEV_BASE_URL = USE_DEV_API_URL
   ? String(import.meta.env.VITE_DEV_API_URL || "").trim()
   : "";
 const RAW_BASE_URL = String(
