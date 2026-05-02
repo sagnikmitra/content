@@ -9,6 +9,31 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
+const isSafeLocalPath = (value) =>
+  typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+
+const getRedirectPath = (location) => {
+  const stateFrom = location?.state?.from;
+  const stateRedirect =
+    typeof stateFrom === "string"
+      ? stateFrom
+      : stateFrom?.pathname
+        ? `${stateFrom.pathname}${stateFrom.search || ""}${stateFrom.hash || ""}`
+        : null;
+
+  if (isSafeLocalPath(stateRedirect)) {
+    return stateRedirect;
+  }
+
+  const params = new URLSearchParams(location?.search || "");
+  const nextRedirect = params.get("next");
+  if (isSafeLocalPath(nextRedirect)) {
+    return nextRedirect;
+  }
+
+  return "/";
+};
+
 export default function ExistingPassword({
   identifier,
   defaultIdentifier = "",
@@ -67,12 +92,7 @@ export default function ExistingPassword({
       persistCredentials({ token, user: sanitizedUser });
       toast.success("Signed in successfully");
 
-      const redirectPath =
-        location?.state?.from?.pathname ||
-        location?.state?.from ||
-        "/";
-
-      navigate(redirectPath, { replace: true });
+      navigate(getRedirectPath(location), { replace: true });
     } catch (error) {
       const message =
         error?.message ||

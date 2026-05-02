@@ -5,6 +5,7 @@ import {
   persistCredentials,
   setCredentials,
 } from "@store/slices/profileSlice";
+import { isTokenExpired } from "@utils/auth/session";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -22,6 +23,14 @@ export default function AuthPage() {
     const userParam = params.get("user");
 
     if (!token) {
+      return;
+    }
+
+    if (isTokenExpired(token)) {
+      toast.error("Sign-in link expired. Please sign in again.");
+      params.delete("token");
+      params.delete("user");
+      navigate("/auth", { replace: true });
       return;
     }
 

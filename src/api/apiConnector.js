@@ -1,4 +1,9 @@
 import axios from "axios";
+import {
+  clearPersistedAuthSession,
+  readStoredAuthToken,
+  redirectToAuth,
+} from "@utils/auth/session";
 
 const REQUEST_TIMEOUT_MS = 30000;
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -6,14 +11,9 @@ const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").trim();
 export const axiosInstance = axios.create({
   timeout: REQUEST_TIMEOUT_MS,
 });
-const TOKEN_STORAGE_KEY = "authToken";
 
 axiosInstance.interceptors.request.use((config) => {
-  if (typeof window === "undefined") {
-    return config;
-  }
-
-  const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+  const token = readStoredAuthToken();
   if (!token) {
     return config;
   }
@@ -26,6 +26,18 @@ axiosInstance.interceptors.request.use((config) => {
     },
   };
 });
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      clearPersistedAuthSession();
+      redirectToAuth();
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export const apiConnector = async (method, url, bodyData, headers, params) => {
   const resolvedHeaders = headers?.headers ? headers.headers : headers;

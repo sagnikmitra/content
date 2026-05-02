@@ -19,6 +19,8 @@ const upload = multer({
 });
 router.use(authenticateRequest);
 
+let googleDriveUploadDisabledReason = null;
+
 const uploadPicturesMiddleware = (req, res, next) => {
   upload.array("pictures", 20)(req, res, (error) => {
     if (!error) {
@@ -224,6 +226,49 @@ const uploadFilesToSupabase = async (files = []) => {
   return uploaded;
 };
 
+const isGoogleDriveUploadAvailable = () => {
+  if (googleDriveUploadDisabledReason) {
+    return false;
+  }
+
+  try {
+    return isGoogleDriveConfigured();
+  } catch (error) {
+    googleDriveUploadDisabledReason = error.message;
+    console.warn(
+      "Google Drive upload unavailable; falling back to Supabase Storage:",
+      googleDriveUploadDisabledReason
+    );
+    return false;
+  }
+};
+
+const uploadFilesToConfiguredStorage = async (files = []) => {
+  if (!isGoogleDriveUploadAvailable()) {
+    return uploadFilesToSupabase(files);
+  }
+
+  try {
+    return await uploadFilesToGoogleDrive(files);
+  } catch (error) {
+    if (!error?.fallbackToSupabase) {
+      throw error;
+    }
+
+    const partialUploads = normalizePictures(error.partialUploads);
+    if (partialUploads.length > 0) {
+      await deletePicturesFromStorage(partialUploads);
+    }
+
+    googleDriveUploadDisabledReason = error.message;
+    console.warn(
+      "Google Drive upload unavailable; falling back to Supabase Storage:",
+      googleDriveUploadDisabledReason
+    );
+    return uploadFilesToSupabase(files);
+  }
+};
+
 router.post("/add-image", uploadPicturesMiddleware, async (req, res) => {
   try {
     const files = req.files || [];
@@ -231,9 +276,7 @@ router.post("/add-image", uploadPicturesMiddleware, async (req, res) => {
       return res.status(400).json({ error: "No files were uploaded" });
     }
 
-    const pictures = isGoogleDriveConfigured()
-      ? await uploadFilesToGoogleDrive(files)
-      : await uploadFilesToSupabase(files);
+    const pictures = await uploadFilesToConfiguredStorage(files);
 
     return res.status(201).json({ pictures });
   } catch (error) {

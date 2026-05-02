@@ -67,6 +67,7 @@ const mapDriveUploadError = (error) => {
   if (reasonSet.has("storageQuotaExceeded")) {
     return {
       statusCode: 400,
+      fallbackToSupabase: true,
       message:
         "Google Drive upload failed: service account storage quota exceeded. Use a Shared Drive folder (recommended) or OAuth user credentials.",
     };
@@ -110,6 +111,7 @@ const uploadFilesToGoogleDrive = async (files = []) => {
   const { folderId } = getDriveConfig();
   const drive = createDriveClient();
   const uploaded = [];
+  const createdFiles = [];
 
   try {
     for (const file of files) {
@@ -126,6 +128,16 @@ const uploadFilesToGoogleDrive = async (files = []) => {
         supportsAllDrives: true,
       });
 
+      const uploadedFile = {
+        id: data.id,
+        path: data.id,
+        provider: "gdrive",
+        url: makeDownloadUrl(data.id),
+        filename: data.name || file.originalname || "file",
+        mimeType: data.mimeType || file.mimetype || "application/octet-stream",
+      };
+      createdFiles.push(uploadedFile);
+
       await drive.permissions.create({
         fileId: data.id,
         requestBody: {
@@ -135,19 +147,14 @@ const uploadFilesToGoogleDrive = async (files = []) => {
         supportsAllDrives: true,
       });
 
-      uploaded.push({
-        id: data.id,
-        path: data.id,
-        provider: "gdrive",
-        url: makeDownloadUrl(data.id),
-        filename: data.name || file.originalname || "file",
-        mimeType: data.mimeType || file.mimetype || "application/octet-stream",
-      });
+      uploaded.push(uploadedFile);
     }
   } catch (error) {
     const mapped = mapDriveUploadError(error);
     const enhanced = new Error(mapped.message);
     enhanced.statusCode = mapped.statusCode;
+    enhanced.fallbackToSupabase = Boolean(mapped.fallbackToSupabase);
+    enhanced.partialUploads = createdFiles;
     enhanced.cause = error;
     throw enhanced;
   }

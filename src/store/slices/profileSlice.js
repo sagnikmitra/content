@@ -1,34 +1,15 @@
 import { createSlice } from "@reduxjs/toolkit";
-
-const TOKEN_STORAGE_KEY = "authToken";
-const USER_STORAGE_KEY = "authUser";
-
-const readTokenFromStorage = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    return window.localStorage.getItem(TOKEN_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-};
-
-const readUserFromStorage = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    const raw = window.localStorage.getItem(USER_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
+import {
+  clearPersistedAuthSession,
+  isTokenExpired,
+  persistAuthSession,
+  readStoredAuthToken,
+  readStoredAuthUser,
+} from "@utils/auth/session";
 
 const initialState = {
-  token: readTokenFromStorage(),
-  user: readUserFromStorage(),
+  token: readStoredAuthToken(),
+  user: readStoredAuthUser(),
 };
 
 export const profileSlice = createSlice({
@@ -47,35 +28,11 @@ export const profileSlice = createSlice({
 });
 
 export const persistCredentials = ({ token, user }) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    if (token) {
-      window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    } else {
-      window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-    }
-    if (user) {
-      window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-    } else {
-      window.localStorage.removeItem(USER_STORAGE_KEY);
-    }
-  } catch {
-    // ignore storage errors
-  }
+  persistAuthSession({ token, user });
 };
 
 export const clearPersistedCredentials = () => {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-    window.localStorage.removeItem(USER_STORAGE_KEY);
-  } catch {
-    // ignore storage errors
-  }
+  clearPersistedAuthSession();
 };
 
 export const { setCredentials, clearCredentials } = profileSlice.actions;
@@ -83,4 +40,4 @@ export default profileSlice.reducer;
 
 export const selectProfile = (state) => state.profile;
 export const selectIsAuthenticated = (state) =>
-  Boolean(state.profile?.token);
+  Boolean(state.profile?.token) && !isTokenExpired(state.profile.token);
