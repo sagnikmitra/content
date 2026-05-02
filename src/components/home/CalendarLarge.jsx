@@ -137,7 +137,7 @@ const CalendarLarge = ({ tasks }) => {
                 {hours.map((timeLabel, idx) => (
                   <div
                     key={idx}
-                    className="relative top-[-25px] flex h-[50px] items-center justify-end pr-2 text-right text-[10px] text-[#8e8e90] md:text-xs"
+                    className="flex h-[50px] items-center justify-end pr-2 text-right text-[10px] text-[#8e8e90] md:text-xs"
                   >
                     {timeLabel === "12 AM" ? "" : timeLabel}
                   </div>
@@ -251,7 +251,7 @@ const CalendarLarge = ({ tasks }) => {
           id="calendar-scroll-container"
           className={clsx(
             "overflow-y-auto",
-            isMobile ? "max-h-[calc(100vh-240px)]" : "max-h-[calc(100vh-210px)]"
+            isMobile ? "max-h-[calc(100vh-240px)]" : "max-h-[calc(100vh-280px)]"
           )}
         >
           {renderGrid()}
